@@ -25,6 +25,8 @@ win32:CONFIG(release, debug|release): LIBS +=
 else:win32:CONFIG(debug, debug|release): LIBS +=
 else:unix: LIBS +=
 
+macx: DESTDIR = ../CVisualDev/CVisualDev.app/Contents/MacOS/
+
 # Default rules for deployment.
 unix {
     target.path = /usr/lib
