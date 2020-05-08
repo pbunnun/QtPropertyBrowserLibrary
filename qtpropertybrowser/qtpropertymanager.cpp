@@ -516,6 +516,81 @@ void QtMetaEnumProvider::localeToIndex(QLocale::Language language, QLocale::Coun
 
 Q_GLOBAL_STATIC(QtMetaEnumProvider, metaEnumProvider)
 
+// QtFilePathPropertyManager
+
+QString QtFilePathPropertyManager::value(const QtProperty *property) const
+{
+    if (!theValues.contains(property))
+        return QString();
+    return theValues[property].value;
+}
+
+QString QtFilePathPropertyManager::filter(const QtProperty *property) const
+{
+    if (!theValues.contains(property))
+        return QString();
+    return theValues[property].filter;
+}
+
+QString QtFilePathPropertyManager::mode(const QtProperty *property) const
+{
+    if (!theValues.contains(property))
+        return QString();
+    return theValues[property].mode;
+}
+
+void QtFilePathPropertyManager::setValue(QtProperty *property, const QString &val)
+{
+    if (!theValues.contains(property))
+        return;
+
+    Data data = theValues[property];
+
+    if (data.value == val)
+        return;
+
+    data.value = val;
+
+    theValues[property] = data;
+
+    emit propertyChanged(property);
+    emit valueChanged(property, data.value);
+}
+
+void QtFilePathPropertyManager::setFilter(QtProperty *property, const QString &fil)
+{
+    if (!theValues.contains(property))
+        return;
+
+    Data data = theValues[property];
+
+    if (data.filter == fil)
+        return;
+
+    data.filter = fil;
+
+    theValues[property] = data;
+
+    emit filterChanged(property, data.filter);
+}
+
+void QtFilePathPropertyManager::setMode(QtProperty *property, const QString &mode)
+{
+    if (!theValues.contains(property))
+        return;
+
+    Data data = theValues[property];
+
+    if (data.mode == mode)
+        return;
+
+    data.mode = mode;
+
+    theValues[property] = data;
+
+    emit modeChanged(property, data.mode);
+}
+
 // QtGroupPropertyManager
 
 /*!
@@ -1263,6 +1338,7 @@ public:
     {
         QString val;
         QRegularExpression regExp;
+        int echoMode{QLineEdit::Normal};
         bool readOnly{false};
     };
 
@@ -1357,6 +1433,14 @@ QRegularExpression QtStringPropertyManager::regExp(const QtProperty *property) c
 }
 
 /*!
+    \reimp
+*/
+EchoMode QtStringPropertyManager::echoMode(const QtProperty *property) const
+{
+    return (EchoMode)getData<int>(d_ptr->m_values, &QtStringPropertyManagerPrivate::Data::echoMode, property, 0);
+}
+
+/*!
     Returns read-only status of the property.
 
     When property is read-only it's value can be selected and copied from editor but not modified.
@@ -1377,6 +1461,21 @@ QString QtStringPropertyManager::valueText(const QtProperty *property) const
     if (it == d_ptr->m_values.constEnd())
         return QString();
     return it.value().val;
+}
+
+/*!
+    \reimp
+*/
+QString QtStringPropertyManager::displayText(const QtProperty *property) const
+{
+    const QtStringPropertyManagerPrivate::PropertyValueMap::const_iterator it = d_ptr->m_values.constFind(property);
+    if (it == d_ptr->m_values.constEnd())
+        return QString();
+
+    QLineEdit edit;
+    edit.setEchoMode((EchoMode)it.value().echoMode);
+    edit.setText(it.value().val);
+    return edit.displayText();
 }
 
 /*!
@@ -1434,6 +1533,24 @@ void QtStringPropertyManager::setRegExp(QtProperty *property, const QRegularExpr
     it.value() = data;
 
     emit regExpChanged(property, data.regExp);
+}
+
+void QtStringPropertyManager::setEchoMode(QtProperty *property, EchoMode echoMode)
+{
+    const QtStringPropertyManagerPrivate::PropertyValueMap::iterator it = d_ptr->m_values.find(property);
+    if (it == d_ptr->m_values.end())
+        return;
+
+    QtStringPropertyManagerPrivate::Data data = it.value();
+
+    if (data.echoMode == echoMode)
+        return;
+
+    data.echoMode = echoMode;
+    it.value() = data;
+
+    emit propertyChanged(property);
+    emit echoModeChanged(property, data.echoMode);
 }
 
 /*!
@@ -1513,7 +1630,14 @@ class QtBoolPropertyManagerPrivate
 public:
     QtBoolPropertyManagerPrivate();
 
-    QMap<const QtProperty *, bool> m_values;
+    struct Data
+    {
+        bool val{false};
+        bool textVisible{true};
+    };
+
+    typedef QMap<const QtProperty *, Data> PropertyValueMap;
+    PropertyValueMap m_values;
     const QIcon m_checkedIcon;
     const QIcon m_uncheckedIcon;
 };
@@ -1577,7 +1701,12 @@ QtBoolPropertyManager::~QtBoolPropertyManager()
 */
 bool QtBoolPropertyManager::value(const QtProperty *property) const
 {
-    return d_ptr->m_values.value(property, false);
+    return getValue<bool>(d_ptr->m_values, property, false);
+}
+
+bool QtBoolPropertyManager::textVisible(const QtProperty *property) const
+{
+    return getData<bool>(d_ptr->m_values, &QtBoolPropertyManagerPrivate::Data::textVisible, property, false);
 }
 
 /*!
@@ -1585,13 +1714,17 @@ bool QtBoolPropertyManager::value(const QtProperty *property) const
 */
 QString QtBoolPropertyManager::valueText(const QtProperty *property) const
 {
-    const QMap<const QtProperty *, bool>::const_iterator it = d_ptr->m_values.constFind(property);
+    const QtBoolPropertyManagerPrivate::PropertyValueMap::const_iterator it = d_ptr->m_values.constFind(property);
     if (it == d_ptr->m_values.constEnd())
+        return QString();
+
+    const QtBoolPropertyManagerPrivate::Data &data = it.value();
+    if (!data.textVisible)
         return QString();
 
     static const QString trueText = tr("True");
     static const QString falseText = tr("False");
-    return it.value() ? trueText : falseText;
+    return data.val ? trueText : falseText;
 }
 
 /*!
@@ -1599,11 +1732,11 @@ QString QtBoolPropertyManager::valueText(const QtProperty *property) const
 */
 QIcon QtBoolPropertyManager::valueIcon(const QtProperty *property) const
 {
-    const QMap<const QtProperty *, bool>::const_iterator it = d_ptr->m_values.constFind(property);
+    const QtBoolPropertyManagerPrivate::PropertyValueMap::const_iterator it = d_ptr->m_values.constFind(property);
     if (it == d_ptr->m_values.constEnd())
         return QIcon();
 
-    return it.value() ? d_ptr->m_checkedIcon : d_ptr->m_uncheckedIcon;
+    return it.value().val ? d_ptr->m_checkedIcon : d_ptr->m_uncheckedIcon;
 }
 
 /*!
@@ -1615,10 +1748,38 @@ QIcon QtBoolPropertyManager::valueIcon(const QtProperty *property) const
 */
 void QtBoolPropertyManager::setValue(QtProperty *property, bool val)
 {
-    setSimpleValue<bool, bool, QtBoolPropertyManager>(d_ptr->m_values, this,
-                &QtBoolPropertyManager::propertyChanged,
-                &QtBoolPropertyManager::valueChanged,
-                property, val);
+    const QtBoolPropertyManagerPrivate::PropertyValueMap::iterator it = d_ptr->m_values.find(property);
+    if (it == d_ptr->m_values.end())
+        return;
+
+    QtBoolPropertyManagerPrivate::Data data = it.value();
+
+    if (data.val == val)
+        return;
+
+    data.val = val;
+    it.value() = data;
+
+    emit propertyChanged(property);
+    emit valueChanged(property, data.val);
+}
+
+void QtBoolPropertyManager::setTextVisible(QtProperty *property, bool textVisible)
+{
+    const QtBoolPropertyManagerPrivate::PropertyValueMap::iterator it = d_ptr->m_values.find(property);
+    if (it == d_ptr->m_values.end())
+        return;
+
+    QtBoolPropertyManagerPrivate::Data data = it.value();
+
+    if (data.textVisible == textVisible)
+        return;
+
+    data.textVisible = textVisible;
+    it.value() = data;
+
+    emit propertyChanged(property);
+    emit textVisibleChanged(property, data.textVisible);
 }
 
 /*!
@@ -1626,7 +1787,7 @@ void QtBoolPropertyManager::setValue(QtProperty *property, bool val)
 */
 void QtBoolPropertyManager::initializeProperty(QtProperty *property)
 {
-    d_ptr->m_values[property] = false;
+    d_ptr->m_values[property] = QtBoolPropertyManagerPrivate::Data();
 }
 
 /*!

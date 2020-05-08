@@ -42,9 +42,12 @@
 
 #include <QtWidgets/QWidget>
 #include <QtCore/QSet>
+#include <QLineEdit>
 #include <QtPropertyBrowserLibrary.hpp>
 
 QT_BEGIN_NAMESPACE
+
+typedef QLineEdit::EchoMode EchoMode;
 
 class QtAbstractPropertyManager;
 class QtPropertyPrivate;

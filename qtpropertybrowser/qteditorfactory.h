@@ -396,6 +396,32 @@ private:
     Q_PRIVATE_SLOT(d_func(), void slotSetValue(const QFont &))
 };
 
+class QtFilePathEditor;
+
+class QtFilePathEditorFactory : public QtAbstractEditorFactory<QtFilePathPropertyManager>
+{
+    Q_OBJECT
+public:
+    QtFilePathEditorFactory(QObject *parent = 0)
+        : QtAbstractEditorFactory<QtFilePathPropertyManager>(parent)
+            { }
+    virtual ~QtFilePathEditorFactory();
+protected:
+    virtual void connectPropertyManager(QtFilePathPropertyManager *manager);
+    virtual QWidget *createEditor(QtFilePathPropertyManager *manager, QtProperty *property,
+                QWidget *parent);
+    virtual void disconnectPropertyManager(QtFilePathPropertyManager *manager);
+private slots:
+    void slotPropertyChanged(QtProperty *property, const QString &value);
+    void slotFilterChanged(QtProperty *property, const QString &filter);
+    void slotModeChanged(QtProperty *property, const QString &mode);
+    void slotSetValue(const QString &value);
+    void slotEditorDestroyed(QObject *object);
+private:
+    QMap<QtProperty *, QList<QtFilePathEditor *> > theCreatedEditors;
+    QMap<QtFilePathEditor *, QtProperty *> theEditorToProperty;
+};
+
 QT_END_NAMESPACE
 
 #endif

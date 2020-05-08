@@ -51,6 +51,42 @@ class QDateTime;
 class QLocale;
 class QRegularExpression;
 
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtFilePathPropertyManager : public QtAbstractPropertyManager
+{
+    Q_OBJECT
+public:
+    QtFilePathPropertyManager(QObject *parent = 0)
+        : QtAbstractPropertyManager(parent)
+            { }
+
+    QString value(const QtProperty *property) const;
+    QString filter(const QtProperty *property) const;
+    QString mode(const QtProperty *property) const;
+
+public slots:
+    void setValue(QtProperty *property, const QString &val);
+    void setFilter(QtProperty *property, const QString &fil);
+    void setMode(QtProperty *property, const QString &mode);
+signals:
+    void valueChanged(QtProperty *property, const QString &val);
+    void filterChanged(QtProperty *property, const QString &fil);
+    void modeChanged(QtProperty *property, const QString &mode);
+protected:
+    virtual QString valueText(const QtProperty *property) const { return value(property); }
+    virtual void initializeProperty(QtProperty *property) { theValues[property] = Data(); }
+    virtual void uninitializeProperty(QtProperty *property) { theValues.remove(property); }
+private:
+
+    struct Data
+    {
+        QString value;
+        QString filter;
+        QString mode;
+    };
+
+    QMap<const QtProperty *, Data> theValues;
+};
+
 class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtGroupPropertyManager : public QtAbstractPropertyManager
 {
     Q_OBJECT
@@ -112,11 +148,14 @@ public:
     ~QtBoolPropertyManager();
 
     bool value(const QtProperty *property) const;
+    bool textVisible(const QtProperty *property) const;
 
 public Q_SLOTS:
     void setValue(QtProperty *property, bool val);
+    void setTextVisible(QtProperty *property, bool textVisible);
 Q_SIGNALS:
     void valueChanged(QtProperty *property, bool val);
+    void textVisibleChanged(QtProperty *property, bool);
 protected:
     QString valueText(const QtProperty *property) const;
     QIcon valueIcon(const QtProperty *property) const;
@@ -179,18 +218,22 @@ public:
 
     QString value(const QtProperty *property) const;
     QRegularExpression regExp(const QtProperty *property) const;
+    EchoMode echoMode(const QtProperty *property) const;
     bool isReadOnly(const QtProperty *property) const;
 
 public Q_SLOTS:
     void setValue(QtProperty *property, const QString &val);
     void setRegExp(QtProperty *property, const QRegularExpression &regExp);
+    void setEchoMode(QtProperty *property, EchoMode echoMode);
     void setReadOnly(QtProperty *property, bool readOnly);
 Q_SIGNALS:
     void valueChanged(QtProperty *property, const QString &val);
     void regExpChanged(QtProperty *property, const QRegularExpression &regExp);
+    void echoModeChanged(QtProperty *property, const int);
     void readOnlyChanged(QtProperty *property, bool);
 protected:
     QString valueText(const QtProperty *property) const;
+    QString displayText(const QtProperty *property) const;
     virtual void initializeProperty(QtProperty *property);
     virtual void uninitializeProperty(QtProperty *property);
 private:

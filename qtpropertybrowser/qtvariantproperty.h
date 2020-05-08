@@ -96,6 +96,7 @@ public:
     static int flagTypeId();
     static int groupTypeId();
     static int iconMapTypeId();
+    static int filePathTypeId();
 public Q_SLOTS:
     virtual void setValue(QtProperty *property, const QVariant &val);
     virtual void setAttribute(QtProperty *property,
@@ -123,6 +124,7 @@ private:
     Q_PRIVATE_SLOT(d_func(), void slotValueChanged(QtProperty *, bool))
     Q_PRIVATE_SLOT(d_func(), void slotValueChanged(QtProperty *, const QString &))
     Q_PRIVATE_SLOT(d_func(), void slotRegExpChanged(QtProperty *, const QRegularExpression &))
+    Q_PRIVATE_SLOT(d_func(), void slotEchoModeChanged(QtProperty *, int))
     Q_PRIVATE_SLOT(d_func(), void slotValueChanged(QtProperty *, const QDate &))
     Q_PRIVATE_SLOT(d_func(), void slotRangeChanged(QtProperty *, const QDate &, const QDate &))
     Q_PRIVATE_SLOT(d_func(), void slotValueChanged(QtProperty *, const QTime &))
@@ -148,6 +150,9 @@ private:
     Q_PRIVATE_SLOT(d_func(), void slotValueChanged(QtProperty *, const QCursor &))
     Q_PRIVATE_SLOT(d_func(), void slotFlagNamesChanged(QtProperty *, const QStringList &))
     Q_PRIVATE_SLOT(d_func(), void slotReadOnlyChanged(QtProperty *, bool))
+    Q_PRIVATE_SLOT(d_func(), void slotTextVisibleChanged(QtProperty *, bool))
+    Q_PRIVATE_SLOT(d_func(), void slotFilePathFilterChanged(QtProperty *, const QString &))
+    Q_PRIVATE_SLOT(d_func(), void slotFilePathModeChanged(QtProperty *, const QString &))
     Q_PRIVATE_SLOT(d_func(), void slotPropertyInserted(QtProperty *, QtProperty *, QtProperty *))
     Q_PRIVATE_SLOT(d_func(), void slotPropertyRemoved(QtProperty *, QtProperty *))
     Q_DECLARE_PRIVATE(QtVariantPropertyManager)

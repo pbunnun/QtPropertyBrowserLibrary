@@ -66,11 +66,16 @@ class QtGroupPropertyType
 {
 };
 
+class QtFilePathPropertyType
+{
+};
+
 QT_END_NAMESPACE
 
 Q_DECLARE_METATYPE(QtEnumPropertyType)
 Q_DECLARE_METATYPE(QtFlagPropertyType)
 Q_DECLARE_METATYPE(QtGroupPropertyType)
+Q_DECLARE_METATYPE(QtFilePathPropertyType)
 
 QT_BEGIN_NAMESPACE
 
@@ -127,6 +132,19 @@ int QtVariantPropertyManager::groupTypeId()
 int QtVariantPropertyManager::iconMapTypeId()
 {
     return qMetaTypeId<QtIconMap>();
+}
+
+/*!
+    Returns the type id for a file path attribute.
+
+    Note that the property's attribute type can be retrieved using then
+    attributeType() function.
+
+    \sa propertyType(), valueType()
+*/
+int QtVariantPropertyManager::filePathTypeId()
+{
+    return qMetaTypeId<QtFilePathPropertyType>();
 }
 
 typedef QMap<const QtProperty *, QtProperty *> PropertyMap;
@@ -299,6 +317,7 @@ public:
     void slotValueChanged(QtProperty *property, bool val);
     void slotValueChanged(QtProperty *property, const QString &val);
     void slotRegExpChanged(QtProperty *property, const QRegularExpression &regExp);
+    void slotEchoModeChanged(QtProperty *property, int);
     void slotValueChanged(QtProperty *property, const QDate &val);
     void slotRangeChanged(QtProperty *property, const QDate &min, const QDate &max);
     void slotValueChanged(QtProperty *property, const QTime &val);
@@ -326,6 +345,9 @@ public:
     void slotFlagChanged(QtProperty *property, int val);
     void slotFlagNamesChanged(QtProperty *property, const QStringList &flagNames);
     void slotReadOnlyChanged(QtProperty *property, bool readOnly);
+    void slotTextVisibleChanged(QtProperty *property, bool textVisible);
+    void slotFilePathFilterChanged(QtProperty *property, const QString &filter);
+    void slotFilePathModeChanged(QtProperty *property, const QString &filter);
     void slotPropertyInserted(QtProperty *property, QtProperty *parent, QtProperty *after);
     void slotPropertyRemoved(QtProperty *property, QtProperty *parent);
 
@@ -355,7 +377,11 @@ public:
     const QString m_maximumAttribute;
     const QString m_minimumAttribute;
     const QString m_regExpAttribute;
+    const QString m_echoModeAttribute;
     const QString m_readOnlyAttribute;
+    const QString m_textVisibleAttribute;
+    const QString m_filePathFilterAttribute;
+    const QString m_filePathModeAttribute;
 };
 
 QtVariantPropertyManagerPrivate::QtVariantPropertyManagerPrivate() :
@@ -368,7 +394,11 @@ QtVariantPropertyManagerPrivate::QtVariantPropertyManagerPrivate() :
     m_maximumAttribute(QLatin1String("maximum")),
     m_minimumAttribute(QLatin1String("minimum")),
     m_regExpAttribute(QLatin1String("regExp")),
-    m_readOnlyAttribute(QLatin1String("readOnly"))
+    m_echoModeAttribute(QLatin1String("echoMode")),
+    m_readOnlyAttribute(QLatin1String("readOnly")),
+    m_textVisibleAttribute(QLatin1String("textVisible")),
+    m_filePathFilterAttribute(QLatin1String("filter")),
+    m_filePathModeAttribute(QLatin1String("mode"))
 {
 }
 
@@ -524,10 +554,34 @@ void QtVariantPropertyManagerPrivate::slotRegExpChanged(QtProperty *property, co
         emit q_ptr->attributeChanged(varProp, m_regExpAttribute, QVariant(regExp));
 }
 
+void QtVariantPropertyManagerPrivate::slotEchoModeChanged(QtProperty *property, int mode)
+{
+    if (QtVariantProperty *varProp = m_internalToProperty.value(property, 0))
+        emit q_ptr->attributeChanged(varProp, m_echoModeAttribute, QVariant(mode));
+}
+
 void QtVariantPropertyManagerPrivate::slotReadOnlyChanged(QtProperty *property, bool readOnly)
 {
     if (QtVariantProperty *varProp = m_internalToProperty.value(property, 0))
         emit q_ptr->attributeChanged(varProp, m_readOnlyAttribute, QVariant(readOnly));
+}
+
+void QtVariantPropertyManagerPrivate::slotTextVisibleChanged(QtProperty *property, bool textVisible)
+{
+    if (QtVariantProperty *varProp = m_internalToProperty.value(property, 0))
+        emit q_ptr->attributeChanged(varProp, m_textVisibleAttribute, QVariant(textVisible));
+}
+
+void QtVariantPropertyManagerPrivate::slotFilePathFilterChanged(QtProperty *property, const QString &filter)
+{
+    if (QtVariantProperty *varProp = m_internalToProperty.value(property, 0))
+        emit q_ptr->attributeChanged(varProp, m_filePathFilterAttribute, QVariant(filter));
+}
+
+void QtVariantPropertyManagerPrivate::slotFilePathModeChanged(QtProperty *property, const QString &mode)
+{
+    if (QtVariantProperty *varProp = m_internalToProperty.value(property, 0))
+        emit q_ptr->attributeChanged(varProp, m_filePathModeAttribute, QVariant(mode));
 }
 
 void QtVariantPropertyManagerPrivate::slotValueChanged(QtProperty *property, const QDate &val)
@@ -777,6 +831,9 @@ void QtVariantPropertyManagerPrivate::slotFlagNamesChanged(QtProperty *property,
     \row
         \li group
         \li groupTypeId()
+    \row
+        \li FilePath
+        \li filePathTypeId()
     \endtable
 
     Each property type can provide additional attributes,
@@ -817,9 +874,17 @@ void QtVariantPropertyManagerPrivate::slotFlagNamesChanged(QtProperty *property,
         \li decimals
         \li QVariant::Int
     \row
+        \li \c bool
+        \li textVisible
+        \li QVariant::Bool
+    \row
         \li QString
         \li regExp
         \li QVariant::RegExp
+    \row
+        \li
+        \li echoMode
+        \li QVariant::Int
     \row
         \li QDate
         \li minimum
@@ -876,6 +941,12 @@ void QtVariantPropertyManagerPrivate::slotFlagNamesChanged(QtProperty *property,
         \li \c flag
         \li flagNames
         \li QVariant::StringList
+    \row
+        \li \c FilePath
+        \li filter
+        \li QVariant::String;
+        \li mode
+        \li QVariant::String;
     \endtable
 
     The attributes for a given property type can be retrieved using
@@ -968,6 +1039,8 @@ QtVariantPropertyManager::QtVariantPropertyManager(QObject *parent)
     d_ptr->m_typeToValueType[QVariant::Bool] = QVariant::Bool;
     connect(boolPropertyManager, SIGNAL(valueChanged(QtProperty*,bool)),
                 this, SLOT(slotValueChanged(QtProperty*,bool)));
+    connect(boolPropertyManager, SIGNAL(textVisibleChanged(QtProperty*, bool)),
+                this, SLOT(slotTextVisibleChanged(QtProperty*, bool)));
     // StringPropertyManager
     QtStringPropertyManager *stringPropertyManager = new QtStringPropertyManager(this);
     d_ptr->m_typeToPropertyManager[QVariant::String] = stringPropertyManager;
@@ -978,6 +1051,8 @@ QtVariantPropertyManager::QtVariantPropertyManager(QObject *parent)
                 this, SLOT(slotValueChanged(QtProperty*,QString)));
     connect(stringPropertyManager, SIGNAL(regExpChanged(QtProperty*,QRegularExpression)),
                 this, SLOT(slotRegExpChanged(QtProperty*,QRegularExpression)));
+    connect(stringPropertyManager, SIGNAL(echoModeChanged(QtProperty*,int)),
+                this, SLOT(slotEchoModeChanged(QtProperty*, int)));
     connect(stringPropertyManager, SIGNAL(readOnlyChanged(QtProperty*, bool)),
                 this, SLOT(slotReadOnlyChanged(QtProperty*, bool)));
     // DatePropertyManager
@@ -1235,6 +1310,19 @@ QtVariantPropertyManager::QtVariantPropertyManager(QObject *parent)
     QtGroupPropertyManager *groupPropertyManager = new QtGroupPropertyManager(this);
     d_ptr->m_typeToPropertyManager[groupId] = groupPropertyManager;
     d_ptr->m_typeToValueType[groupId] = QVariant::Invalid;
+    // FilePathPropertyManager
+    int filePathId = filePathTypeId();
+    QtFilePathPropertyManager *filePathPropertyManager = new QtFilePathPropertyManager(this);
+    d_ptr->m_typeToPropertyManager[filePathId] = filePathPropertyManager;
+    d_ptr->m_typeToValueType[filePathId] = QVariant::String;
+    d_ptr->m_typeToAttributeToAttributeType[filePathId][d_ptr->m_filePathFilterAttribute] = QVariant::String;
+    d_ptr->m_typeToAttributeToAttributeType[filePathId][d_ptr->m_filePathModeAttribute] = QVariant::String;
+    connect(filePathPropertyManager, SIGNAL(valueChanged(QtProperty *, const QString &)),
+            this, SLOT(slotValueChanged(QtProperty *, const QString &)));
+    connect(filePathPropertyManager, SIGNAL(filterChanged(QtProperty *, const QString &)),
+            this, SLOT(slotFilePathFilterChanged(QtProperty *, const QString &)));
+    connect(filePathPropertyManager, SIGNAL(modeChanged(QtProperty *, const QString &)),
+            this, SLOT(slotFilePathModeChanged(QtProperty *, const QString &)));
 }
 
 /*!
@@ -1368,6 +1456,8 @@ QVariant QtVariantPropertyManager::value(const QtProperty *property) const
 #endif
     } else if (QtFlagPropertyManager *flagManager = qobject_cast<QtFlagPropertyManager *>(manager)) {
         return flagManager->value(internProp);
+    } else if (QtFilePathPropertyManager *filePathManager = qobject_cast<QtFilePathPropertyManager *>(manager)) {
+        return filePathManager->value(internProp);
     }
     return QVariant();
 }
@@ -1461,9 +1551,15 @@ QVariant QtVariantPropertyManager::attributeValue(const QtProperty *property, co
         if (attribute == d_ptr->m_readOnlyAttribute)
             return doubleManager->isReadOnly(internProp);
         return QVariant();
+    } else if (QtBoolPropertyManager *boolManager = qobject_cast<QtBoolPropertyManager *>(manager)) {
+        if (attribute == d_ptr->m_textVisibleAttribute)
+            return boolManager->textVisible(internProp);
+        return QVariant();
     } else if (QtStringPropertyManager *stringManager = qobject_cast<QtStringPropertyManager *>(manager)) {
         if (attribute == d_ptr->m_regExpAttribute)
             return stringManager->regExp(internProp);
+        if (attribute == d_ptr->m_echoModeAttribute)
+            return stringManager->echoMode(internProp);
         if (attribute == d_ptr->m_readOnlyAttribute)
             return stringManager->isReadOnly(internProp);
         return QVariant();
@@ -1513,6 +1609,12 @@ QVariant QtVariantPropertyManager::attributeValue(const QtProperty *property, co
     } else if (QtFlagPropertyManager *flagManager = qobject_cast<QtFlagPropertyManager *>(manager)) {
         if (attribute == d_ptr->m_flagNamesAttribute)
             return flagManager->flagNames(internProp);
+        return QVariant();
+    } else if (QtFilePathPropertyManager *filePathManager = qobject_cast<QtFilePathPropertyManager *>(manager)) {
+        if (attribute == d_ptr->m_filePathFilterAttribute)
+            return filePathManager->filter(internProp);
+        else if (attribute == d_ptr->m_filePathModeAttribute)
+            return filePathManager->mode(internProp);
         return QVariant();
     }
     return QVariant();
@@ -1582,7 +1684,6 @@ void QtVariantPropertyManager::setValue(QtProperty *property, const QVariant &va
     QtProperty *internProp = propertyToWrappedProperty()->value(property, 0);
     if (internProp == 0)
         return;
-
 
     QtAbstractPropertyManager *manager = internProp->propertyManager();
     if (QtIntPropertyManager *intManager = qobject_cast<QtIntPropertyManager *>(manager)) {
@@ -1654,6 +1755,9 @@ void QtVariantPropertyManager::setValue(QtProperty *property, const QVariant &va
     } else if (QtFlagPropertyManager *flagManager = qobject_cast<QtFlagPropertyManager *>(manager)) {
         flagManager->setValue(internProp, qvariant_cast<int>(val));
         return;
+    } else if (QtFilePathPropertyManager *filePathManager = qobject_cast<QtFilePathPropertyManager *>(manager)) {
+        filePathManager->setValue(internProp, qvariant_cast<QString>(val));
+        return;
     }
 }
 
@@ -1710,11 +1814,17 @@ void QtVariantPropertyManager::setAttribute(QtProperty *property,
         if (attribute == d_ptr->m_readOnlyAttribute)
             doubleManager->setReadOnly(internProp, qvariant_cast<bool>(value));
         return;
+    } else if (QtBoolPropertyManager *boolManager = qobject_cast<QtBoolPropertyManager *>(manager)) {
+        if (attribute == d_ptr->m_textVisibleAttribute)
+            boolManager->setTextVisible(internProp, qvariant_cast<bool>(value));
+        return;
     } else if (QtStringPropertyManager *stringManager = qobject_cast<QtStringPropertyManager *>(manager)) {
         if (attribute == d_ptr->m_regExpAttribute)
             stringManager->setRegExp(internProp, qvariant_cast<QRegularExpression>(value));
+        if (attribute == d_ptr->m_echoModeAttribute)
+            stringManager->setEchoMode(internProp, (EchoMode)qvariant_cast<int>(value));
         if (attribute == d_ptr->m_readOnlyAttribute)
-            stringManager->setReadOnly(internProp, qvariant_cast<bool>(value));
+            stringManager->setReadOnly(internProp, (EchoMode)qvariant_cast<bool>(value));
         return;
     } else if (QtDatePropertyManager *dateManager = qobject_cast<QtDatePropertyManager *>(manager)) {
         if (attribute == d_ptr->m_maximumAttribute)
@@ -1759,6 +1869,12 @@ void QtVariantPropertyManager::setAttribute(QtProperty *property,
     } else if (QtFlagPropertyManager *flagManager = qobject_cast<QtFlagPropertyManager *>(manager)) {
         if (attribute == d_ptr->m_flagNamesAttribute)
             flagManager->setFlagNames(internProp, qvariant_cast<QStringList>(value));
+        return;
+    } else if (QtFilePathPropertyManager *filePathManager = qobject_cast<QtFilePathPropertyManager *>(manager)) {
+        if (attribute == d_ptr->m_filePathFilterAttribute)
+            filePathManager->setFilter(internProp, qvariant_cast<QString>(value));
+        else if (attribute == d_ptr->m_filePathModeAttribute)
+            filePathManager->setMode(internProp, qvariant_cast<QString>(value));
         return;
     }
 }
@@ -1879,6 +1995,7 @@ public:
     QtCursorEditorFactory      *m_cursorEditorFactory;
     QtColorEditorFactory       *m_colorEditorFactory;
     QtFontEditorFactory        *m_fontEditorFactory;
+    QtFilePathEditorFactory    *m_filePathEditorFactory;
 
     QMap<QtAbstractEditorFactoryBase *, int> m_factoryToType;
     QMap<int, QtAbstractEditorFactoryBase *> m_typeToFactory;
@@ -1933,6 +2050,9 @@ public:
     \row
         \li QCursor
         \li QComboBox
+    \row
+        \li FilePath
+        \li customized editor
     \endtable
 
     Note that QtVariantPropertyManager supports several additional property
@@ -2004,6 +2124,11 @@ QtVariantEditorFactory::QtVariantEditorFactory(QObject *parent)
     const int enumId = QtVariantPropertyManager::enumTypeId();
     d_ptr->m_factoryToType[d_ptr->m_comboBoxFactory] = enumId;
     d_ptr->m_typeToFactory[enumId] = d_ptr->m_comboBoxFactory;
+
+    d_ptr->m_filePathEditorFactory = new QtFilePathEditorFactory(this);
+    const int filePathId = QtVariantPropertyManager::filePathTypeId();
+    d_ptr->m_factoryToType[d_ptr->m_filePathEditorFactory] = filePathId;
+    d_ptr->m_typeToFactory[filePathId] = d_ptr->m_filePathEditorFactory;
 }
 
 /*!
@@ -2115,6 +2240,10 @@ void QtVariantEditorFactory::connectPropertyManager(QtVariantPropertyManager *ma
     const auto flagPropertyManagers = manager->findChildren<QtFlagPropertyManager *>();
     for (QtFlagPropertyManager *manager : flagPropertyManagers)
         d_ptr->m_checkBoxFactory->addPropertyManager(manager->subBoolPropertyManager());
+
+    const auto filePathPropertyManagers = manager->findChildren<QtFilePathPropertyManager *>();
+    for (QtFilePathPropertyManager *manager : filePathPropertyManagers)
+        d_ptr->m_filePathEditorFactory->addPropertyManager(manager);
 }
 
 /*!
@@ -2234,6 +2363,10 @@ void QtVariantEditorFactory::disconnectPropertyManager(QtVariantPropertyManager 
     const auto flagPropertyManagers = manager->findChildren<QtFlagPropertyManager *>();
     for (QtFlagPropertyManager *manager : flagPropertyManagers)
         d_ptr->m_checkBoxFactory->removePropertyManager(manager->subBoolPropertyManager());
+
+    const auto filePathPropertyManagers = manager->findChildren<QtFilePathPropertyManager *>();
+    for (QtFilePathPropertyManager *manager : filePathPropertyManagers)
+        d_ptr->m_filePathEditorFactory->removePropertyManager(manager);
 }
 
 QT_END_NAMESPACE
