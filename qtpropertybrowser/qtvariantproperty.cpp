@@ -1023,7 +1023,7 @@ QtVariantPropertyManager::QtVariantPropertyManager(QObject *parent)
     d_ptr->m_typeToAttributeToAttributeType[QVariant::Double][d_ptr->m_decimalsAttribute] =
             QVariant::Int;
     d_ptr->m_typeToAttributeToAttributeType[QVariant::Double][d_ptr->m_readOnlyAttribute] =
-        QVariant::Bool;
+            QVariant::Bool;
     d_ptr->m_typeToValueType[QVariant::Double] = QVariant::Double;
     connect(doublePropertyManager, SIGNAL(valueChanged(QtProperty*,double)),
                 this, SLOT(slotValueChanged(QtProperty*,double)));
@@ -1036,6 +1036,8 @@ QtVariantPropertyManager::QtVariantPropertyManager(QObject *parent)
     // BoolPropertyManager
     QtBoolPropertyManager *boolPropertyManager = new QtBoolPropertyManager(this);
     d_ptr->m_typeToPropertyManager[QVariant::Bool] = boolPropertyManager;
+    d_ptr->m_typeToAttributeToAttributeType[QVariant::Bool][d_ptr->m_textVisibleAttribute] =
+            QVariant::Bool;
     d_ptr->m_typeToValueType[QVariant::Bool] = QVariant::Bool;
     connect(boolPropertyManager, SIGNAL(valueChanged(QtProperty*,bool)),
                 this, SLOT(slotValueChanged(QtProperty*,bool)));
@@ -1047,6 +1049,8 @@ QtVariantPropertyManager::QtVariantPropertyManager(QObject *parent)
     d_ptr->m_typeToValueType[QVariant::String] = QVariant::String;
     d_ptr->m_typeToAttributeToAttributeType[QVariant::String][d_ptr->m_regExpAttribute] =
             QVariant::RegExp;
+    d_ptr->m_typeToAttributeToAttributeType[QVariant::String][d_ptr->m_readOnlyAttribute] = 
+            QVariant::Bool;
     connect(stringPropertyManager, SIGNAL(valueChanged(QtProperty*,QString)),
                 this, SLOT(slotValueChanged(QtProperty*,QString)));
     connect(stringPropertyManager, SIGNAL(regExpChanged(QtProperty*,QRegularExpression)),
@@ -1824,7 +1828,7 @@ void QtVariantPropertyManager::setAttribute(QtProperty *property,
         if (attribute == d_ptr->m_echoModeAttribute)
             stringManager->setEchoMode(internProp, (EchoMode)qvariant_cast<int>(value));
         if (attribute == d_ptr->m_readOnlyAttribute)
-            stringManager->setReadOnly(internProp, (EchoMode)qvariant_cast<bool>(value));
+            stringManager->setReadOnly(internProp, qvariant_cast<bool>(value));
         return;
     } else if (QtDatePropertyManager *dateManager = qobject_cast<QtDatePropertyManager *>(manager)) {
         if (attribute == d_ptr->m_maximumAttribute)
