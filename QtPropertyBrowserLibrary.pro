@@ -26,6 +26,7 @@ else:win32:CONFIG(debug, debug|release): LIBS +=
 else:unix: LIBS +=
 
 macx {
+    QMAKE_MACOSX_DEPLOYMENT_TARGET = 11.0
     QMAKE_MAC_SDK = macosx11.1
     DESTDIR = ../CVisualDev/CVisualDev.app/Contents/MacOS/
     }
