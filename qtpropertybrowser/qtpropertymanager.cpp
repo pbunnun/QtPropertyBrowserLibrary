@@ -1634,6 +1634,7 @@ public:
     {
         bool val{false};
         bool textVisible{true};
+        bool readOnly{false};
     };
 
     typedef QMap<const QtProperty *, Data> PropertyValueMap;
@@ -1739,6 +1740,11 @@ QIcon QtBoolPropertyManager::valueIcon(const QtProperty *property) const
     return it.value().val ? d_ptr->m_checkedIcon : d_ptr->m_uncheckedIcon;
 }
 
+bool QtBoolPropertyManager::isReadOnly(const QtProperty *property) const
+{
+    return getData<bool>(d_ptr->m_values, &QtBoolPropertyManagerPrivate::Data::readOnly, property, false);
+}
+
 /*!
     \fn void QtBoolPropertyManager::setValue(QtProperty *property, bool value)
 
@@ -1782,6 +1788,23 @@ void QtBoolPropertyManager::setTextVisible(QtProperty *property, bool textVisibl
     emit textVisibleChanged(property, data.textVisible);
 }
 
+void QtBoolPropertyManager::setReadOnly(QtProperty *property, bool readOnly)
+{
+    const QtBoolPropertyManagerPrivate::PropertyValueMap::iterator it = d_ptr->m_values.find(property);
+    if( it == d_ptr->m_values.end() )
+        return;
+
+    QtBoolPropertyManagerPrivate::Data data = it.value();
+
+    if( data.readOnly == readOnly )
+        return;
+
+    data.readOnly = readOnly;
+    it.value() = data;
+
+    emit propertyChanged(property);
+    emit readOnlyChanged(property, data.readOnly);
+}
 /*!
     \reimp
 */

@@ -1039,10 +1039,14 @@ QtVariantPropertyManager::QtVariantPropertyManager(QObject *parent)
     d_ptr->m_typeToAttributeToAttributeType[QVariant::Bool][d_ptr->m_textVisibleAttribute] =
             QVariant::Bool;
     d_ptr->m_typeToValueType[QVariant::Bool] = QVariant::Bool;
+    d_ptr->m_typeToAttributeToAttributeType[QVariant::Bool][d_ptr->m_readOnlyAttribute] = 
+            QVariant::Bool;
     connect(boolPropertyManager, SIGNAL(valueChanged(QtProperty*,bool)),
                 this, SLOT(slotValueChanged(QtProperty*,bool)));
     connect(boolPropertyManager, SIGNAL(textVisibleChanged(QtProperty*, bool)),
                 this, SLOT(slotTextVisibleChanged(QtProperty*, bool)));
+    connect(boolPropertyManager, SIGNAL(readOnlyChanged(QtProperty*, bool)),
+                this, SLOT(slotReadOnlyChanged(QtProperty*, bool)));
     // StringPropertyManager
     QtStringPropertyManager *stringPropertyManager = new QtStringPropertyManager(this);
     d_ptr->m_typeToPropertyManager[QVariant::String] = stringPropertyManager;
@@ -1558,6 +1562,8 @@ QVariant QtVariantPropertyManager::attributeValue(const QtProperty *property, co
     } else if (QtBoolPropertyManager *boolManager = qobject_cast<QtBoolPropertyManager *>(manager)) {
         if (attribute == d_ptr->m_textVisibleAttribute)
             return boolManager->textVisible(internProp);
+        if (attribute == d_ptr->m_readOnlyAttribute)
+            return boolManager->isReadOnly(internProp);
         return QVariant();
     } else if (QtStringPropertyManager *stringManager = qobject_cast<QtStringPropertyManager *>(manager)) {
         if (attribute == d_ptr->m_regExpAttribute)
@@ -1821,6 +1827,8 @@ void QtVariantPropertyManager::setAttribute(QtProperty *property,
     } else if (QtBoolPropertyManager *boolManager = qobject_cast<QtBoolPropertyManager *>(manager)) {
         if (attribute == d_ptr->m_textVisibleAttribute)
             boolManager->setTextVisible(internProp, qvariant_cast<bool>(value));
+        if (attribute == d_ptr->m_readOnlyAttribute)
+            boolManager->setReadOnly(internProp, qvariant_cast<bool>(value));
         return;
     } else if (QtStringPropertyManager *stringManager = qobject_cast<QtStringPropertyManager *>(manager)) {
         if (attribute == d_ptr->m_regExpAttribute)

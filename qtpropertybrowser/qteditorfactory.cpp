@@ -623,6 +623,7 @@ class QtCheckBoxFactoryPrivate : public EditorFactoryPrivate<QtBoolEdit>
 public:
     void slotPropertyChanged(QtProperty *property, bool value);
     void slotSetValue(bool value);
+    void slotReadOnlyChanged(QtProperty *, bool);
 };
 
 void QtCheckBoxFactoryPrivate::slotPropertyChanged(QtProperty *property, bool value)
@@ -635,6 +636,23 @@ void QtCheckBoxFactoryPrivate::slotPropertyChanged(QtProperty *property, bool va
         editor->blockCheckBoxSignals(true);
         editor->setChecked(value);
         editor->blockCheckBoxSignals(false);
+    }
+}
+
+void QtCheckBoxFactoryPrivate::slotReadOnlyChanged(QtProperty *property, bool readOnly)
+{
+    const auto it = m_createdEditors.constFind(property);
+    if( it == m_createdEditors.constEnd() )
+        return;
+
+    QtBoolPropertyManager *manager = q_ptr->propertyManager(property);
+    if (!manager )
+        return;
+
+    for (QtBoolEdit *editor : it.value()) {
+        editor->blockSignals(true);
+        editor->setDisabled(readOnly);
+        editor->blockSignals(false);
     }
 }
 
@@ -705,6 +723,7 @@ QWidget *QtCheckBoxFactory::createEditor(QtBoolPropertyManager *manager, QtPrope
 {
     QtBoolEdit *editor = d_ptr->createEditor(property, parent);
     editor->setChecked(manager->value(property));
+    editor->setDisabled(manager->isReadOnly(property));
 
     connect(editor, SIGNAL(toggled(bool)), this, SLOT(slotSetValue(bool)));
     connect(editor, SIGNAL(destroyed(QObject*)),

@@ -2,7 +2,7 @@ QT += widgets
 
 TEMPLATE = lib
 
-CONFIG += c++14
+CONFIG += c++17
 INCLUDEPATH +=
 
 # The following define makes your compiler emit warnings if you use

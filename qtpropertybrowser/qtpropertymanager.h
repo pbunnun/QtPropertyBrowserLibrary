@@ -149,13 +149,16 @@ public:
 
     bool value(const QtProperty *property) const;
     bool textVisible(const QtProperty *property) const;
+    bool isReadOnly(const QtProperty *property) const;
 
 public Q_SLOTS:
     void setValue(QtProperty *property, bool val);
     void setTextVisible(QtProperty *property, bool textVisible);
+    void setReadOnly(QtProperty * property, bool readOnly);
 Q_SIGNALS:
     void valueChanged(QtProperty *property, bool val);
     void textVisibleChanged(QtProperty *property, bool);
+    void readOnlyChanged(QtProperty *property, bool);
 protected:
     QString valueText(const QtProperty *property) const;
     QIcon valueIcon(const QtProperty *property) const;
