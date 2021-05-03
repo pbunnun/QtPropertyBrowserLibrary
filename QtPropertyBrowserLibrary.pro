@@ -2,7 +2,7 @@ QT += widgets
 
 TEMPLATE = lib
 
-CONFIG += c++17
+CONFIG += c++17 sdk_no_version_check
 INCLUDEPATH +=
 
 # The following define makes your compiler emit warnings if you use
@@ -27,7 +27,7 @@ else:unix: LIBS +=
 
 macx {
     QMAKE_MACOSX_DEPLOYMENT_TARGET = 11.0
-    QMAKE_MAC_SDK = macosx11.1
+    QMAKE_MAC_SDK = macosx11.3
     DESTDIR = ../CVisualDev/CVisualDev.app/Contents/MacOS/
     }
 
