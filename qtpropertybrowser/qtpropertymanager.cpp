@@ -6134,7 +6134,7 @@ void QtFontPropertyManager::setValue(QtProperty *property, const QFont &val)
         return;
 
     const QFont oldVal = it.value();
-    if (oldVal == val)// && oldVal.resolve() == val.resolve())
+    if (oldVal == val && oldVal.resolve() == val.resolve()) // Might have a problem or warning in Qt 6.x
         return;
 
     it.value() = val;

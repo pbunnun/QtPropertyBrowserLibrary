@@ -2646,7 +2646,9 @@ QtFilePathEditor::QtFilePathEditor(QWidget *parent)
     : QWidget(parent)
 {
     QHBoxLayout *layout = new QHBoxLayout(this);
-    //layout->setMargin(0);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+    layout->setMargin(0);
+#endif
     layout->setSpacing(0);
     theLineEdit = new QLineEdit(this);
     theLineEdit->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred));
