@@ -2,7 +2,7 @@ QT += widgets
 
 TEMPLATE = lib
 
-CONFIG += c++17 sdk_no_version_check
+CONFIG += c++11 sdk_no_version_check
 INCLUDEPATH +=
 
 # The following define makes your compiler emit warnings if you use
