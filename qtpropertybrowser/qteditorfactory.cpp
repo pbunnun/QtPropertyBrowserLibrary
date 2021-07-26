@@ -86,7 +86,7 @@ class EditorFactoryPrivate
 {
 public:
 
-    typedef QVector<Editor *> EditorList;
+    typedef QList<Editor *> EditorList;
     typedef QMap<QtProperty *, EditorList> PropertyToEditorListMap;
     typedef QMap<Editor *, QtProperty *> EditorToPropertyMap;
 
@@ -1125,12 +1125,12 @@ class QtDateEditFactoryPrivate : public EditorFactoryPrivate<QDateEdit>
     Q_DECLARE_PUBLIC(QtDateEditFactory)
 public:
 
-    void slotPropertyChanged(QtProperty *property, const QDate &value);
-    void slotRangeChanged(QtProperty *property, const QDate &min, const QDate &max);
-    void slotSetValue(const QDate &value);
+    void slotPropertyChanged(QtProperty *property, QDate value);
+    void slotRangeChanged(QtProperty *property, QDate min, QDate max);
+    void slotSetValue(QDate value);
 };
 
-void QtDateEditFactoryPrivate::slotPropertyChanged(QtProperty *property, const QDate &value)
+void QtDateEditFactoryPrivate::slotPropertyChanged(QtProperty *property, QDate value)
 {
     const auto it = m_createdEditors.constFind(property);
     if (it == m_createdEditors.constEnd())
@@ -1142,8 +1142,7 @@ void QtDateEditFactoryPrivate::slotPropertyChanged(QtProperty *property, const Q
     }
 }
 
-void QtDateEditFactoryPrivate::slotRangeChanged(QtProperty *property,
-                const QDate &min, const QDate &max)
+void QtDateEditFactoryPrivate::slotRangeChanged(QtProperty *property, QDate min, QDate max)
 {
     const auto it = m_createdEditors.constFind(property);
     if (it == m_createdEditors.constEnd())
@@ -1161,7 +1160,7 @@ void QtDateEditFactoryPrivate::slotRangeChanged(QtProperty *property,
     }
 }
 
-void QtDateEditFactoryPrivate::slotSetValue(const QDate &value)
+void QtDateEditFactoryPrivate::slotSetValue(QDate value)
 {
     QObject *object = q_ptr->sender();
     const QMap<QDateEdit *, QtProperty *>::ConstIterator  ecend = m_editorToProperty.constEnd();
@@ -1261,11 +1260,11 @@ class QtTimeEditFactoryPrivate : public EditorFactoryPrivate<QTimeEdit>
     Q_DECLARE_PUBLIC(QtTimeEditFactory)
 public:
 
-    void slotPropertyChanged(QtProperty *property, const QTime &value);
-    void slotSetValue(const QTime &value);
+    void slotPropertyChanged(QtProperty *property, QTime value);
+    void slotSetValue(QTime value);
 };
 
-void QtTimeEditFactoryPrivate::slotPropertyChanged(QtProperty *property, const QTime &value)
+void QtTimeEditFactoryPrivate::slotPropertyChanged(QtProperty *property, QTime value)
 {
     const auto it = m_createdEditors.constFind(property);
     if (it == m_createdEditors.constEnd())
@@ -1277,7 +1276,7 @@ void QtTimeEditFactoryPrivate::slotPropertyChanged(QtProperty *property, const Q
     }
 }
 
-void QtTimeEditFactoryPrivate::slotSetValue(const QTime &value)
+void QtTimeEditFactoryPrivate::slotSetValue(QTime value)
 {
     QObject *object = q_ptr->sender();
     const  QMap<QTimeEdit *, QtProperty *>::ConstIterator ecend = m_editorToProperty.constEnd();
@@ -1596,17 +1595,17 @@ public:
     QtCharEdit(QWidget *parent = 0);
 
     QChar value() const;
-    bool eventFilter(QObject *o, QEvent *e);
+    bool eventFilter(QObject *o, QEvent *e) override;
 public Q_SLOTS:
     void setValue(const QChar &value);
 Q_SIGNALS:
     void valueChanged(const QChar &value);
 protected:
-    void focusInEvent(QFocusEvent *e);
-    void focusOutEvent(QFocusEvent *e);
-    void keyPressEvent(QKeyEvent *e);
-    void keyReleaseEvent(QKeyEvent *e);
-    bool event(QEvent *e);
+    void focusInEvent(QFocusEvent *e) override;
+    void focusOutEvent(QFocusEvent *e) override;
+    void keyPressEvent(QKeyEvent *e) override;
+    void keyReleaseEvent(QKeyEvent *e) override;
+    bool event(QEvent *e) override;
 private slots:
     void slotClearChar();
 private:
@@ -2212,7 +2211,7 @@ class QtColorEditWidget : public QWidget {
 public:
     QtColorEditWidget(QWidget *parent);
 
-    bool eventFilter(QObject *obj, QEvent *ev);
+    bool eventFilter(QObject *obj, QEvent *ev) override;
 
 public Q_SLOTS:
     void setValue(const QColor &value);
@@ -2409,7 +2408,7 @@ class QtFontEditWidget : public QWidget {
 public:
     QtFontEditWidget(QWidget *parent);
 
-    bool eventFilter(QObject *obj, QEvent *ev);
+    bool eventFilter(QObject *obj, QEvent *ev) override;
 
 public Q_SLOTS:
     void setValue(const QFont &value);
@@ -2614,13 +2613,13 @@ void QtFontEditorFactory::disconnectPropertyManager(QtFontPropertyManager *manag
 }
 
 
-// QtFilePathEditor
+// QtFilePathEditWidget
 
-class QtFilePathEditor : public QWidget
+class QtFilePathEditWidget : public QWidget
 {
     Q_OBJECT
 public:
-    QtFilePathEditor(QWidget *parent = 0);
+    QtFilePathEditWidget(QWidget *parent = 0);
     void setFilePath(const QString &filePath) { if (theLineEdit->text() != filePath) theLineEdit->setText(filePath); }
     QString filePath() const { return theLineEdit->text(); }
     void setFilter(const QString &filter) { theFilter = filter; }
@@ -2642,11 +2641,13 @@ private:
     QString theMode;
 };
 
-QtFilePathEditor::QtFilePathEditor(QWidget *parent)
+QtFilePathEditWidget::QtFilePathEditWidget(QWidget *parent)
     : QWidget(parent)
 {
     QHBoxLayout *layout = new QHBoxLayout(this);
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    layout->setContentsMargins(0, 0, 0, 0);
+#else
     layout->setMargin(0);
 #endif
     layout->setSpacing(0);
@@ -2666,7 +2667,7 @@ QtFilePathEditor::QtFilePathEditor(QWidget *parent)
                 this, SLOT(buttonClicked()));
 }
 
-void QtFilePathEditor::buttonClicked()
+void QtFilePathEditWidget::buttonClicked()
 {
     QString filePath;
     if (theMode == "save")
@@ -2680,7 +2681,7 @@ void QtFilePathEditor::buttonClicked()
     emit filePathChanged(filePath);
 }
 
-void QtFilePathEditor::focusInEvent(QFocusEvent *e)
+void QtFilePathEditWidget::focusInEvent(QFocusEvent *e)
 {
     theLineEdit->event(e);
     if (e->reason() == Qt::TabFocusReason || e->reason() == Qt::BacktabFocusReason) {
@@ -2689,31 +2690,93 @@ void QtFilePathEditor::focusInEvent(QFocusEvent *e)
     QWidget::focusInEvent(e);
 }
 
-void QtFilePathEditor::focusOutEvent(QFocusEvent *e)
+void QtFilePathEditWidget::focusOutEvent(QFocusEvent *e)
 {
     theLineEdit->event(e);
     QWidget::focusOutEvent(e);
 }
 
-void QtFilePathEditor::keyPressEvent(QKeyEvent *e)
+void QtFilePathEditWidget::keyPressEvent(QKeyEvent *e)
 {
     theLineEdit->event(e);
 }
 
-void QtFilePathEditor::keyReleaseEvent(QKeyEvent *e)
+void QtFilePathEditWidget::keyReleaseEvent(QKeyEvent *e)
 {
     theLineEdit->event(e);
 }
 
+// QtFilePathEditorFactoryPrivate
+class QtFilePathEditorFactoryPrivate : public EditorFactoryPrivate<QtFilePathEditWidget>
+{
+    QtFilePathEditorFactory *q_ptr;
+    Q_DECLARE_PUBLIC(QtFilePathEditorFactory)
+public:
+    void slotPropertyChanged(QtProperty *property, const QString &value);
+    void slotSetValue(const QString & value);
+    void slotFilterChanged(QtProperty *property, const QString & value);
+    void slotModeChanged(QtProperty *property, const QString & value );
+};
+
+void QtFilePathEditorFactoryPrivate::slotPropertyChanged(QtProperty *property, const QString &value)
+{
+    const PropertyToEditorListMap::const_iterator it = m_createdEditors.constFind(property);
+    if( it == m_createdEditors.constEnd() )
+        return;
+
+    for( QtFilePathEditWidget *e : it.value() )
+        e->setFilePath(value);
+}
+
+void QtFilePathEditorFactoryPrivate::slotSetValue( const QString & value )
+{
+    QObject * object = q_ptr->sender();
+    const EditorToPropertyMap::ConstIterator ecend = m_editorToProperty.constEnd();
+    for( EditorToPropertyMap::ConstIterator itEditor = m_editorToProperty.constBegin(); itEditor != ecend; ++itEditor )
+    {
+        if( itEditor.key() == object )
+        {
+            QtProperty *property = itEditor.value();
+            QtFilePathPropertyManager *manager = q_ptr->propertyManager(property);
+            if(!manager)
+                return;
+            manager->setValue(property, value);
+            return;
+        }
+    }
+}
+
+void QtFilePathEditorFactoryPrivate::slotFilterChanged(QtProperty * property, const QString & value )
+{
+    const auto it = m_createdEditors.constFind(property);
+    if( it == m_createdEditors.constEnd() )
+        return;
+
+    for( QtFilePathEditWidget * e : it.value() )
+        e->setFilter(value);
+}
+
+void QtFilePathEditorFactoryPrivate::slotModeChanged(QtProperty *property, const QString & value )
+{
+    const auto it = m_createdEditors.constFind(property);
+    if( it == m_createdEditors.constEnd() )
+        return;
+
+    for( QtFilePathEditWidget * e : it.value() )
+        e->setMode(value);
+}
 
 // QtFilePathEditorFactory
+QtFilePathEditorFactory::QtFilePathEditorFactory(QObject *parent) :
+    QtAbstractEditorFactory<QtFilePathPropertyManager>(parent),
+    d_ptr(new QtFilePathEditorFactoryPrivate() )
+{
+    d_ptr->q_ptr = this;
+}
 
 QtFilePathEditorFactory::~QtFilePathEditorFactory()
 {
-    QList<QtFilePathEditor *> editors = theEditorToProperty.keys();
-    QListIterator<QtFilePathEditor *> it(editors);
-    while (it.hasNext())
-        delete it.next();
+    qDeleteAll(d_ptr->m_editorToProperty.keys());
 }
 
 void QtFilePathEditorFactory::connectPropertyManager(QtFilePathPropertyManager *manager)
@@ -2729,12 +2792,10 @@ void QtFilePathEditorFactory::connectPropertyManager(QtFilePathPropertyManager *
 QWidget *QtFilePathEditorFactory::createEditor(QtFilePathPropertyManager *manager,
         QtProperty *property, QWidget *parent)
 {
-    QtFilePathEditor *editor = new QtFilePathEditor(parent);
+    QtFilePathEditWidget *editor = d_ptr->createEditor(property, parent);
     editor->setFilePath(manager->value(property));
     editor->setFilter(manager->filter(property));
     editor->setMode(manager->mode(property));
-    theCreatedEditors[property].append(editor);
-    theEditorToProperty[editor] = property;
 
     connect(editor, SIGNAL(filePathChanged(const QString &)),
                 this, SLOT(slotSetValue(const QString &)));
@@ -2751,78 +2812,6 @@ void QtFilePathEditorFactory::disconnectPropertyManager(QtFilePathPropertyManage
                 this, SLOT(slotFilterChanged(QtProperty *, const QString &)));
     disconnect(manager, SIGNAL(modeChanged(QtProperty *, const QString &)),
                 this, SLOT(slotModeChanged(QtProperty *, const QString &)));
-}
-
-void QtFilePathEditorFactory::slotPropertyChanged(QtProperty *property,
-                const QString &value)
-{
-    if (!theCreatedEditors.contains(property))
-        return;
-
-    QList<QtFilePathEditor *> editors = theCreatedEditors[property];
-    QListIterator<QtFilePathEditor *> itEditor(editors);
-    while (itEditor.hasNext())
-        itEditor.next()->setFilePath(value);
-}
-
-void QtFilePathEditorFactory::slotFilterChanged(QtProperty *property,
-            const QString &filter)
-{
-    if (!theCreatedEditors.contains(property))
-        return;
-
-    QList<QtFilePathEditor *> editors = theCreatedEditors[property];
-    QListIterator<QtFilePathEditor *> itEditor(editors);
-    while (itEditor.hasNext())
-        itEditor.next()->setFilter(filter);
-}
-
-void QtFilePathEditorFactory::slotModeChanged(QtProperty *property,
-            const QString &mode)
-{
-    if (!theCreatedEditors.contains(property))
-        return;
-
-    QList<QtFilePathEditor *> editors = theCreatedEditors[property];
-    QListIterator<QtFilePathEditor *> itEditor(editors);
-    while (itEditor.hasNext())
-        itEditor.next()->setMode(mode);
-}
-
-void QtFilePathEditorFactory::slotSetValue(const QString &value)
-{
-    QObject *object = sender();
-    QMap<QtFilePathEditor *, QtProperty *>::ConstIterator itEditor =
-                theEditorToProperty.constBegin();
-    while (itEditor != theEditorToProperty.constEnd()) {
-        if (itEditor.key() == object) {
-            QtProperty *property = itEditor.value();
-            QtFilePathPropertyManager *manager = propertyManager(property);
-            if (!manager)
-                return;
-            manager->setValue(property, value);
-            return;
-        }
-        itEditor++;
-    }
-}
-
-void QtFilePathEditorFactory::slotEditorDestroyed(QObject *object)
-{
-    QMap<QtFilePathEditor *, QtProperty *>::ConstIterator itEditor =
-                theEditorToProperty.constBegin();
-    while (itEditor != theEditorToProperty.constEnd()) {
-        if (itEditor.key() == object) {
-            QtFilePathEditor *editor = itEditor.key();
-            QtProperty *property = itEditor.value();
-            theEditorToProperty.remove(editor);
-            theCreatedEditors[property].removeAll(editor);
-            if (theCreatedEditors[property].isEmpty())
-                theCreatedEditors.remove(property);
-            return;
-        }
-        itEditor++;
-    }
 }
 
 QT_END_NAMESPACE

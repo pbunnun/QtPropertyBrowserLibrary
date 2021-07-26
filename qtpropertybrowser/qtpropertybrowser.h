@@ -57,7 +57,7 @@ class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtProperty
 public:
     virtual ~QtProperty();
 
-    QVector<QtProperty *> subProperties() const;
+    QList<QtProperty *> subProperties() const;
 
     QtAbstractPropertyManager *propertyManager() const;
 
@@ -150,7 +150,7 @@ class QtAbstractEditorFactory : public QtAbstractEditorFactoryBase
 {
 public:
     explicit QtAbstractEditorFactory(QObject *parent) : QtAbstractEditorFactoryBase(parent) {}
-    QWidget *createEditor(QtProperty *property, QWidget *parent)
+    QWidget *createEditor(QtProperty *property, QWidget *parent) override
     {
         for (PropertyManager *manager : qAsConst(m_managers)) {
             if (manager == property->propertyManager()) {
@@ -196,7 +196,7 @@ protected:
     virtual QWidget *createEditor(PropertyManager *manager, QtProperty *property,
                 QWidget *parent) = 0;
     virtual void disconnectPropertyManager(PropertyManager *manager) = 0;
-    void managerDestroyed(QObject *manager)
+    void managerDestroyed(QObject *manager) override
     {
         for (PropertyManager *m : qAsConst(m_managers)) {
             if (m == manager) {
@@ -206,7 +206,7 @@ protected:
         }
     }
 private:
-    void breakConnection(QtAbstractPropertyManager *manager)
+    void breakConnection(QtAbstractPropertyManager *manager) override
     {
         for (PropertyManager *m : qAsConst(m_managers)) {
             if (m == manager) {
@@ -228,7 +228,7 @@ class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtBrowserItem
 public:
     QtProperty *property() const;
     QtBrowserItem *parent() const;
-    QVector<QtBrowserItem *> children() const;
+    QList<QtBrowserItem *> children() const;
     QtAbstractPropertyBrowser *browser() const;
 private:
     explicit QtBrowserItem(QtAbstractPropertyBrowser *browser, QtProperty *property, QtBrowserItem *parent);
@@ -247,10 +247,10 @@ public:
     explicit QtAbstractPropertyBrowser(QWidget *parent = 0);
     ~QtAbstractPropertyBrowser();
 
-    QVector<QtProperty *> properties() const;
-    QVector<QtBrowserItem *> items(QtProperty *property) const;
+    QList<QtProperty *> properties() const;
+    QList<QtBrowserItem *> items(QtProperty *property) const;
     QtBrowserItem *topLevelItem(QtProperty *property) const;
-    QVector<QtBrowserItem *> topLevelItems() const;
+    QList<QtBrowserItem *> topLevelItems() const;
     void clear();
 
     template <class PropertyManager>

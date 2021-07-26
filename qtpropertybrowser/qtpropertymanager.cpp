@@ -271,7 +271,7 @@ static void setBorderValues(PropertyManager *manager, PropertyManagerPrivate *ma
             void (PropertyManager::*propertyChangedSignal)(QtProperty *),
             void (PropertyManager::*valueChangedSignal)(QtProperty *, ValueChangeParameter),
             void (PropertyManager::*rangeChangedSignal)(QtProperty *, ValueChangeParameter, ValueChangeParameter),
-            QtProperty *property, const Value &minVal, const Value &maxVal,
+            QtProperty *property, ValueChangeParameter minVal, ValueChangeParameter maxVal,
             void (PropertyManagerPrivate::*setSubPropertyRange)(QtProperty *,
                     ValueChangeParameter, ValueChangeParameter, ValueChangeParameter))
 {
@@ -407,12 +407,12 @@ private:
     QMetaEnum m_policyEnum;
 };
 
-static QVector<QLocale::Country> sortCountries(const QVector<QLocale::Country> &countries)
+static QList<QLocale::Country> sortCountries(const QList<QLocale::Country> &countries)
 {
     QMultiMap<QString, QLocale::Country> nameToCountry;
     for (QLocale::Country country : countries)
         nameToCountry.insert(QLocale::countryToString(country), country);
-    return nameToCountry.values().toVector();
+    return nameToCountry.values();
 }
 
 void QtMetaEnumProvider::initLocale()
@@ -431,8 +431,8 @@ void QtMetaEnumProvider::initLocale()
 
     const auto languages = nameToLanguage.values();
     for (QLocale::Language language : languages) {
-        QVector<QLocale::Country> countries;
-        countries = QLocale::countriesForLanguage(language).toVector();
+        QList<QLocale::Country> countries;
+        countries = QLocale::countriesForLanguage(language);
         if (countries.isEmpty() && language == system.language())
             countries << system.country();
 
@@ -517,41 +517,76 @@ void QtMetaEnumProvider::localeToIndex(QLocale::Language language, QLocale::Coun
 Q_GLOBAL_STATIC(QtMetaEnumProvider, metaEnumProvider)
 
 // QtFilePathPropertyManager
+class QtFilePathPropertyManagerPrivate
+{
+    QtFilePathPropertyManager *q_ptr;
+    Q_DECLARE_PUBLIC(QtFilePathPropertyManager)
+public:
+    struct Data
+    {
+        QString value;
+        QString filter;
+        QString mode;
+    };
+
+    typedef QMap<const QtProperty *, Data> PropertyValueMap;
+    PropertyValueMap m_values;
+};
+
+QtFilePathPropertyManager::QtFilePathPropertyManager(QObject *parent )
+    : QtAbstractPropertyManager(parent), d_ptr(new QtFilePathPropertyManagerPrivate)
+{
+    d_ptr->q_ptr = this;
+}
+
+QtFilePathPropertyManager::~QtFilePathPropertyManager()
+{
+    clear();
+}
+
+QString QtFilePathPropertyManager::valueText(const QtProperty *property) const
+{ 
+    return value(property); 
+}
+
+void QtFilePathPropertyManager::initializeProperty(QtProperty *property) 
+{
+    d_ptr->m_values[property] = QtFilePathPropertyManagerPrivate::Data();
+}
+
+void QtFilePathPropertyManager::uninitializeProperty(QtProperty *property) 
+{
+    d_ptr->m_values.remove(property);
+}
 
 QString QtFilePathPropertyManager::value(const QtProperty *property) const
 {
-    if (!theValues.contains(property))
-        return QString();
-    return theValues[property].value;
+    return getData<QString>(d_ptr->m_values, &QtFilePathPropertyManagerPrivate::Data::value, property);
 }
 
 QString QtFilePathPropertyManager::filter(const QtProperty *property) const
 {
-    if (!theValues.contains(property))
-        return QString();
-    return theValues[property].filter;
+    return getData<QString>(d_ptr->m_values, &QtFilePathPropertyManagerPrivate::Data::filter, property);
 }
 
 QString QtFilePathPropertyManager::mode(const QtProperty *property) const
 {
-    if (!theValues.contains(property))
-        return QString();
-    return theValues[property].mode;
+    return getData<QString>(d_ptr->m_values, &QtFilePathPropertyManagerPrivate::Data::mode, property);
 }
 
 void QtFilePathPropertyManager::setValue(QtProperty *property, const QString &val)
 {
-    if (!theValues.contains(property))
+    const QtFilePathPropertyManagerPrivate::PropertyValueMap::iterator it = d_ptr->m_values.find(property);
+    if ( it == d_ptr->m_values.end() )
         return;
 
-    Data data = theValues[property];
+    QtFilePathPropertyManagerPrivate::Data data = it.value();
 
     if (data.value == val)
         return;
 
     data.value = val;
-
-    theValues[property] = data;
+    it.value() = data;
 
     emit propertyChanged(property);
     emit valueChanged(property, data.value);
@@ -559,34 +594,34 @@ void QtFilePathPropertyManager::setValue(QtProperty *property, const QString &va
 
 void QtFilePathPropertyManager::setFilter(QtProperty *property, const QString &fil)
 {
-    if (!theValues.contains(property))
+    const QtFilePathPropertyManagerPrivate::PropertyValueMap::iterator it = d_ptr->m_values.find(property);
+    if ( it == d_ptr->m_values.end() )
         return;
 
-    Data data = theValues[property];
+    QtFilePathPropertyManagerPrivate::Data data = it.value();
 
     if (data.filter == fil)
         return;
 
     data.filter = fil;
-
-    theValues[property] = data;
+    it.value() = data;
 
     emit filterChanged(property, data.filter);
 }
 
 void QtFilePathPropertyManager::setMode(QtProperty *property, const QString &mode)
 {
-    if (!theValues.contains(property))
+    const QtFilePathPropertyManagerPrivate::PropertyValueMap::iterator it = d_ptr->m_values.find(property);
+    if ( it == d_ptr->m_values.end() )
         return;
 
-    Data data = theValues[property];
+    QtFilePathPropertyManagerPrivate::Data data = it.value();
 
     if (data.mode == mode)
         return;
 
     data.mode = mode;
-
-    theValues[property] = data;
+    it.value() = data;
 
     emit modeChanged(property, data.mode);
 }
@@ -1837,8 +1872,8 @@ public:
         QDate maxVal{QDate(9999, 12, 31)};
         QDate minimumValue() const { return minVal; }
         QDate maximumValue() const { return maxVal; }
-        void setMinimumValue(const QDate &newMinVal) { setSimpleMinimumData(this, newMinVal); }
-        void setMaximumValue(const QDate &newMaxVal) { setSimpleMaximumData(this, newMaxVal); }
+        void setMinimumValue(QDate newMinVal) { setSimpleMinimumData(this, newMinVal); }
+        void setMaximumValue(QDate newMaxVal) { setSimpleMaximumData(this, newMaxVal); }
     };
 
     QString m_format;
@@ -1879,7 +1914,7 @@ QtDatePropertyManagerPrivate::QtDatePropertyManagerPrivate(QtDatePropertyManager
 */
 
 /*!
-    \fn void QtDatePropertyManager::valueChanged(QtProperty *property, const QDate &value)
+    \fn void QtDatePropertyManager::valueChanged(QtProperty *property, QDate value)
 
     This signal is emitted whenever a property created by this manager
     changes its value, passing a pointer to the \a property and the new
@@ -1889,7 +1924,7 @@ QtDatePropertyManagerPrivate::QtDatePropertyManagerPrivate(QtDatePropertyManager
 */
 
 /*!
-    \fn void QtDatePropertyManager::rangeChanged(QtProperty *property, const QDate &minimum, const QDate &maximum)
+    \fn void QtDatePropertyManager::rangeChanged(QtProperty *property, QDate minimum, QDate maximum)
 
     This signal is emitted whenever a property created by this manager
     changes its range of valid dates, passing a pointer to the \a
@@ -1959,7 +1994,7 @@ QString QtDatePropertyManager::valueText(const QtProperty *property) const
 }
 
 /*!
-    \fn void QtDatePropertyManager::setValue(QtProperty *property, const QDate &value)
+    \fn void QtDatePropertyManager::setValue(QtProperty *property, QDate value)
 
     Sets the value of the given \a property to \a value.
 
@@ -1969,10 +2004,10 @@ QString QtDatePropertyManager::valueText(const QtProperty *property) const
 
     \sa value(), setRange(), valueChanged()
 */
-void QtDatePropertyManager::setValue(QtProperty *property, const QDate &val)
+void QtDatePropertyManager::setValue(QtProperty *property, QDate val)
 {
-    void (QtDatePropertyManagerPrivate::*setSubPropertyValue)(QtProperty *, const QDate &) = 0;
-    setValueInRange<const QDate &, QtDatePropertyManagerPrivate, QtDatePropertyManager, const QDate>(this, d_ptr.data(),
+    void (QtDatePropertyManagerPrivate::*setSubPropertyValue)(QtProperty *, QDate) = 0;
+    setValueInRange<QDate, QtDatePropertyManagerPrivate, QtDatePropertyManager, const QDate>(this, d_ptr.data(),
                 &QtDatePropertyManager::propertyChanged,
                 &QtDatePropertyManager::valueChanged,
                 property, val, setSubPropertyValue);
@@ -1987,9 +2022,9 @@ void QtDatePropertyManager::setValue(QtProperty *property, const QDate &val)
 
     \sa minimum(), setRange()
 */
-void QtDatePropertyManager::setMinimum(QtProperty *property, const QDate &minVal)
+void QtDatePropertyManager::setMinimum(QtProperty *property, QDate minVal)
 {
-    setMinimumValue<const QDate &, QtDatePropertyManagerPrivate, QtDatePropertyManager, QDate, QtDatePropertyManagerPrivate::Data>(this, d_ptr.data(),
+    setMinimumValue<QDate, QtDatePropertyManagerPrivate, QtDatePropertyManager, QDate, QtDatePropertyManagerPrivate::Data>(this, d_ptr.data(),
                 &QtDatePropertyManager::propertyChanged,
                 &QtDatePropertyManager::valueChanged,
                 &QtDatePropertyManager::rangeChanged,
@@ -2005,9 +2040,9 @@ void QtDatePropertyManager::setMinimum(QtProperty *property, const QDate &minVal
 
     \sa maximum(), setRange()
 */
-void QtDatePropertyManager::setMaximum(QtProperty *property, const QDate &maxVal)
+void QtDatePropertyManager::setMaximum(QtProperty *property, QDate maxVal)
 {
-    setMaximumValue<const QDate &, QtDatePropertyManagerPrivate, QtDatePropertyManager, QDate, QtDatePropertyManagerPrivate::Data>(this, d_ptr.data(),
+    setMaximumValue<QDate, QtDatePropertyManagerPrivate, QtDatePropertyManager, QDate, QtDatePropertyManagerPrivate::Data>(this, d_ptr.data(),
                 &QtDatePropertyManager::propertyChanged,
                 &QtDatePropertyManager::valueChanged,
                 &QtDatePropertyManager::rangeChanged,
@@ -2015,7 +2050,7 @@ void QtDatePropertyManager::setMaximum(QtProperty *property, const QDate &maxVal
 }
 
 /*!
-    \fn void QtDatePropertyManager::setRange(QtProperty *property, const QDate &minimum, const QDate &maximum)
+    \fn void QtDatePropertyManager::setRange(QtProperty *property, QDate minimum, QDate maximum)
 
     Sets the range of valid dates.
 
@@ -2028,11 +2063,10 @@ void QtDatePropertyManager::setMaximum(QtProperty *property, const QDate &maxVal
 
     \sa setMinimum(), setMaximum(), rangeChanged()
 */
-void QtDatePropertyManager::setRange(QtProperty *property, const QDate &minVal, const QDate &maxVal)
+void QtDatePropertyManager::setRange(QtProperty *property, QDate minVal, QDate maxVal)
 {
-    void (QtDatePropertyManagerPrivate::*setSubPropertyRange)(QtProperty *, const QDate &,
-          const QDate &, const QDate &) = 0;
-    setBorderValues<const QDate &, QtDatePropertyManagerPrivate, QtDatePropertyManager, QDate>(this, d_ptr.data(),
+    void (QtDatePropertyManagerPrivate::*setSubPropertyRange)(QtProperty *, QDate, QDate, QDate) = 0;
+    setBorderValues<QDate, QtDatePropertyManagerPrivate, QtDatePropertyManager, QDate>(this, d_ptr.data(),
                 &QtDatePropertyManager::propertyChanged,
                 &QtDatePropertyManager::valueChanged,
                 &QtDatePropertyManager::rangeChanged,
@@ -2095,7 +2129,7 @@ QtTimePropertyManagerPrivate::QtTimePropertyManagerPrivate(QtTimePropertyManager
 */
 
 /*!
-    \fn void QtTimePropertyManager::valueChanged(QtProperty *property, const QTime &value)
+    \fn void QtTimePropertyManager::valueChanged(QtProperty *property, QTime value)
 
     This signal is emitted whenever a property created by this manager
     changes its value, passing a pointer to the \a property and the
@@ -2145,15 +2179,15 @@ QString QtTimePropertyManager::valueText(const QtProperty *property) const
 }
 
 /*!
-    \fn void QtTimePropertyManager::setValue(QtProperty *property, const QTime &value)
+    \fn void QtTimePropertyManager::setValue(QtProperty *property, QTime value)
 
     Sets the value of the given \a property to \a value.
 
     \sa value(), valueChanged()
 */
-void QtTimePropertyManager::setValue(QtProperty *property, const QTime &val)
+void QtTimePropertyManager::setValue(QtProperty *property, QTime val)
 {
-    setSimpleValue<const QTime &, QTime, QtTimePropertyManager>(d_ptr->m_values, this,
+    setSimpleValue<QTime, QTime, QtTimePropertyManager>(d_ptr->m_values, this,
                 &QtTimePropertyManager::propertyChanged,
                 &QtTimePropertyManager::valueChanged,
                 property, val);
@@ -5172,7 +5206,7 @@ public:
 
     QtBoolPropertyManager *m_boolPropertyManager;
 
-    QMap<const QtProperty *, QVector<QtProperty *> > m_propertyToFlags;
+    QMap<const QtProperty *, QList<QtProperty *> > m_propertyToFlags;
 
     QMap<const QtProperty *, QtProperty *> m_flagToProperty;
 };
@@ -5457,7 +5491,7 @@ void QtFlagPropertyManager::initializeProperty(QtProperty *property)
 {
     d_ptr->m_values[property] = QtFlagPropertyManagerPrivate::Data();
 
-    d_ptr->m_propertyToFlags[property] = QVector<QtProperty *>();
+    d_ptr->m_propertyToFlags[property] = QList<QtProperty *>();
 }
 
 /*!
@@ -5804,8 +5838,9 @@ void QtSizePolicyPropertyManager::uninitializeProperty(QtProperty *property)
 // using a timer with interval 0, which then causes the family
 // enumeration manager to re-set its strings and index values
 // for each property.
-
-Q_GLOBAL_STATIC(QFontDatabase, fontDatabase)
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0) )
+    Q_GLOBAL_STATIC(QFontDatabase, fontDatabase)
+#endif
 
 class QtFontPropertyManagerPrivate
 {
@@ -5949,7 +5984,11 @@ void QtFontPropertyManagerPrivate::slotFontDatabaseDelayedChange()
     typedef QMap<const QtProperty *, QtProperty *> PropertyPropertyMap;
     // rescan available font names
     const QStringList oldFamilies = m_familyNames;
-    m_familyNames = fontDatabase()->families();
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) )
+    m_familyNames = QFontDatabase::families();
+#else
+    m_familyNames = fontDatabase->families();
+#endif
 
     // Adapt all existing properties
     if (!m_propertyToFamily.isEmpty()) {
@@ -6134,8 +6173,13 @@ void QtFontPropertyManager::setValue(QtProperty *property, const QFont &val)
         return;
 
     const QFont oldVal = it.value();
-    if (oldVal == val && oldVal.resolve() == val.resolve()) // Might have a problem or warning in Qt 6.x
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) )
+    if (oldVal == val && oldVal.resolveMask() == val.resolveMask())
         return;
+#else
+    if(oldVal == val && oldVal.resolve() == val.resolve()) // Might have a problem or warning in Qt 6.x
+        return;
+#endif
 
     it.value() = val;
 
@@ -6168,7 +6212,11 @@ void QtFontPropertyManager::initializeProperty(QtProperty *property)
     QtProperty *familyProp = d_ptr->m_enumPropertyManager->addProperty();
     familyProp->setPropertyName(tr("Family"));
     if (d_ptr->m_familyNames.isEmpty())
-        d_ptr->m_familyNames = fontDatabase()->families();
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) )
+        d_ptr->m_familyNames = QFontDatabase::families();
+#else
+        d_ptr->m_familyNames = fontDatabase->families();
+#endif
     d_ptr->m_enumPropertyManager->setEnumNames(familyProp, d_ptr->m_familyNames);
     int idx = d_ptr->m_familyNames.indexOf(val.family());
     if (idx == -1)
