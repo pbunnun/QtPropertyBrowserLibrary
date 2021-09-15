@@ -1152,6 +1152,7 @@ QtVariantPropertyManager::QtVariantPropertyManager(QObject *parent)
             QMetaType::QSize;
     d_ptr->m_typeToAttributeToAttributeType[QMetaType::QSize][d_ptr->m_maximumAttribute] =
             QMetaType::QSize;
+    d_ptr->m_typeToAttributeToAttributeType[QMetaType::QSize][d_ptr->m_readOnlyAttribute] = QMetaType::Bool;
     connect(sizePropertyManager, SIGNAL(valueChanged(QtProperty*,QSize)),
                 this, SLOT(slotValueChanged(QtProperty*,QSize)));
     connect(sizePropertyManager, SIGNAL(rangeChanged(QtProperty*,QSize,QSize)),
@@ -1174,6 +1175,7 @@ QtVariantPropertyManager::QtVariantPropertyManager(QObject *parent)
             QMetaType::QSizeF;
     d_ptr->m_typeToAttributeToAttributeType[QMetaType::QSizeF][d_ptr->m_decimalsAttribute] =
             QMetaType::Int;
+    d_ptr->m_typeToAttributeToAttributeType[QMetaType::QSizeF][d_ptr->m_readOnlyAttribute] = QMetaType::Bool;
     connect(sizeFPropertyManager, SIGNAL(valueChanged(QtProperty*,QSizeF)),
                 this, SLOT(slotValueChanged(QtProperty*,QSizeF)));
     connect(sizeFPropertyManager, SIGNAL(rangeChanged(QtProperty*,QSizeF,QSizeF)),
@@ -1593,6 +1595,8 @@ QVariant QtVariantPropertyManager::attributeValue(const QtProperty *property, co
             return sizeManager->maximum(internProp);
         if (attribute == d_ptr->m_minimumAttribute)
             return sizeManager->minimum(internProp);
+        if (attribute == d_ptr->m_readOnlyAttribute)
+            return sizeManager->isReadOnly(internProp);
         return QVariant();
     } else if (QtSizeFPropertyManager *sizeFManager = qobject_cast<QtSizeFPropertyManager *>(manager)) {
         if (attribute == d_ptr->m_maximumAttribute)
@@ -1601,6 +1605,8 @@ QVariant QtVariantPropertyManager::attributeValue(const QtProperty *property, co
             return sizeFManager->minimum(internProp);
         if (attribute == d_ptr->m_decimalsAttribute)
             return sizeFManager->decimals(internProp);
+        if (attribute == d_ptr->m_readOnlyAttribute)
+            return sizeFManager->isReadOnly(internProp);
         return QVariant();
     } else if (QtRectPropertyManager *rectManager = qobject_cast<QtRectPropertyManager *>(manager)) {
         if (attribute == d_ptr->m_constraintAttribute)
@@ -1860,6 +1866,8 @@ void QtVariantPropertyManager::setAttribute(QtProperty *property,
             sizeManager->setMaximum(internProp, qvariant_cast<QSize>(value));
         if (attribute == d_ptr->m_minimumAttribute)
             sizeManager->setMinimum(internProp, qvariant_cast<QSize>(value));
+        if (attribute == d_ptr->m_readOnlyAttribute)
+            sizeManager->setReadOnly(internProp, qvariant_cast<bool>(value));
         return;
     } else if (QtSizeFPropertyManager *sizeFManager = qobject_cast<QtSizeFPropertyManager *>(manager)) {
         if (attribute == d_ptr->m_maximumAttribute)
@@ -1868,6 +1876,8 @@ void QtVariantPropertyManager::setAttribute(QtProperty *property,
             sizeFManager->setMinimum(internProp, qvariant_cast<QSizeF>(value));
         if (attribute == d_ptr->m_decimalsAttribute)
             sizeFManager->setDecimals(internProp, qvariant_cast<int>(value));
+        if (attribute == d_ptr->m_readOnlyAttribute)
+            sizeFManager->setReadOnly(internProp, qvariant_cast<bool>(value));
         return;
     } else if (QtRectPropertyManager *rectManager = qobject_cast<QtRectPropertyManager *>(manager)) {
         if (attribute == d_ptr->m_constraintAttribute)

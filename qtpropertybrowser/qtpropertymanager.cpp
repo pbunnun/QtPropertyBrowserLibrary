@@ -3312,6 +3312,7 @@ public:
         QSize val{0, 0};
         QSize minVal{0, 0};
         QSize maxVal{INT_MAX, INT_MAX};
+        bool readOnly{false};
         QSize minimumValue() const { return minVal; }
         QSize maximumValue() const { return maxVal; }
         void setMinimumValue(const QSize &newMinVal) { setSizeMinimumData(this, newMinVal); }
@@ -3495,6 +3496,18 @@ QSize QtSizePropertyManager::maximum(const QtProperty *property) const
 }
 
 /*!
+    Returns read-only status of the property.
+
+    When property is read-only it's value can be selected and copied from editor but not modified.
+
+    \sa QtIntPropertyManager::setReadOnly
+*/
+bool QtSizePropertyManager::isReadOnly(const QtProperty *property) const
+{
+    return getData<bool>(d_ptr->m_values, &QtSizePropertyManagerPrivate::Data::readOnly, property, false);
+}
+
+/*!
     \reimp
 */
 QString QtSizePropertyManager::valueText(const QtProperty *property) const
@@ -3592,6 +3605,32 @@ void QtSizePropertyManager::setRange(QtProperty *property, const QSize &minVal, 
 }
 
 /*!
+    Sets read-only status of the property.
+
+    \sa QtSizePropertyManager::setReadOnly
+*/
+void QtSizePropertyManager::setReadOnly(QtProperty *property, bool readOnly)
+{
+    const QtSizePropertyManagerPrivate::PropertyValueMap::iterator it = d_ptr->m_values.find(property);
+    if (it == d_ptr->m_values.end())
+        return;
+
+    QtSizePropertyManagerPrivate::Data data = it.value();
+
+    if (data.readOnly == readOnly)
+        return;
+
+    data.readOnly = readOnly;
+    it.value() = data;
+
+    emit propertyChanged(property);
+    emit readOnlyChanged(property, data.readOnly);
+
+    d_ptr->m_intPropertyManager->setReadOnly(d_ptr->m_propertyToH[property], readOnly);
+    d_ptr->m_intPropertyManager->setReadOnly(d_ptr->m_propertyToW[property], readOnly);
+}
+
+/*!
     \reimp
 */
 void QtSizePropertyManager::initializeProperty(QtProperty *property)
@@ -3657,6 +3696,7 @@ public:
         QSizeF minVal{0, 0};
         QSizeF maxVal{std::numeric_limits<qreal>::max(), std::numeric_limits<qreal>::max()};
         int decimals{2};
+        bool readOnly{false};
         QSizeF minimumValue() const { return minVal; }
         QSizeF maximumValue() const { return maxVal; }
         void setMinimumValue(const QSizeF &newMinVal) { setSizeMinimumData(this, newMinVal); }
@@ -3858,6 +3898,18 @@ QSizeF QtSizeFPropertyManager::maximum(const QtProperty *property) const
 }
 
 /*!
+    Returns read-only status of the property.
+
+    When property is read-only it's value can be selected and copied from editor but not modified.
+
+    \sa QtIntPropertyManager::setReadOnly
+*/
+bool QtSizeFPropertyManager::isReadOnly(const QtProperty *property) const
+{
+    return getData<bool>(d_ptr->m_values, &QtSizeFPropertyManagerPrivate::Data::readOnly, property, false);
+}
+
+/*!
     \reimp
 */
 QString QtSizeFPropertyManager::valueText(const QtProperty *property) const
@@ -3987,6 +4039,32 @@ void QtSizeFPropertyManager::setRange(QtProperty *property, const QSizeF &minVal
                 &QtSizeFPropertyManager::valueChanged,
                 &QtSizeFPropertyManager::rangeChanged,
                 property, minVal, maxVal, &QtSizeFPropertyManagerPrivate::setRange);
+}
+
+/*!
+    Sets read-only status of the property.
+
+    \sa QtSizeFPropertyManager::setReadOnly
+*/
+void QtSizeFPropertyManager::setReadOnly(QtProperty *property, bool readOnly)
+{
+    const QtSizeFPropertyManagerPrivate::PropertyValueMap::iterator it = d_ptr->m_values.find(property);
+    if (it == d_ptr->m_values.end())
+        return;
+
+    QtSizeFPropertyManagerPrivate::Data data = it.value();
+
+    if (data.readOnly == readOnly)
+        return;
+
+    data.readOnly = readOnly;
+    it.value() = data;
+
+    emit propertyChanged(property);
+    emit readOnlyChanged(property, data.readOnly);
+
+    d_ptr->m_doublePropertyManager->setReadOnly(d_ptr->m_propertyToH[property], readOnly);
+    d_ptr->m_doublePropertyManager->setReadOnly(d_ptr->m_propertyToW[property], readOnly);
 }
 
 /*!
