@@ -97,6 +97,7 @@ public:
     static int groupTypeId();
     static int iconMapTypeId();
     static int filePathTypeId();
+    static int pathTypeId();
 public Q_SLOTS:
     virtual void setValue(QtProperty *property, const QVariant &val);
     virtual void setAttribute(QtProperty *property,

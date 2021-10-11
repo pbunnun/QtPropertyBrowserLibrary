@@ -420,6 +420,28 @@ private:
     Q_PRIVATE_SLOT(d_func(), void slotEditorDestroyed(QObject *))
 };
 
+class QtPathEditorFactoryPrivate;
+
+class QtPathEditorFactory : public QtAbstractEditorFactory<QtPathPropertyManager>
+{
+    Q_OBJECT
+public:
+    QtPathEditorFactory(QObject *parent = 0);
+    ~QtPathEditorFactory();
+protected:
+    void connectPropertyManager(QtPathPropertyManager *manager) override;
+    QWidget *createEditor(QtPathPropertyManager *manager, QtProperty *property,
+                QWidget *parent) override;
+    void disconnectPropertyManager(QtPathPropertyManager *manager) override;
+private:
+    QScopedPointer<QtPathEditorFactoryPrivate> d_ptr;
+    Q_DECLARE_PRIVATE(QtPathEditorFactory)
+    Q_DISABLE_COPY_MOVE(QtPathEditorFactory)
+    Q_PRIVATE_SLOT(d_func(), void slotPropertyChanged(QtProperty *, const QString &))
+    Q_PRIVATE_SLOT(d_func(), void slotSetValue(const QString &))
+    Q_PRIVATE_SLOT(d_func(), void slotEditorDestroyed(QObject *))
+};
+
 QT_END_NAMESPACE
 
 #endif

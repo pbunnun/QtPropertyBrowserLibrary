@@ -82,6 +82,31 @@ private:
     Q_DISABLE_COPY_MOVE(QtFilePathPropertyManager)
 };
 
+class QtPathPropertyManagerPrivate;
+
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtPathPropertyManager : public QtAbstractPropertyManager
+{
+    Q_OBJECT
+public:
+    QtPathPropertyManager(QObject *parent = 0);
+    ~QtPathPropertyManager();
+
+    QString value(const QtProperty *property) const;
+
+public Q_SLOTS:
+    void setValue(QtProperty *property, const QString &val);
+Q_SIGNALS:
+    void valueChanged(QtProperty *property, const QString &val);
+protected:
+    QString valueText(const QtProperty *property) const override;
+    void initializeProperty(QtProperty *property) override;
+    void uninitializeProperty(QtProperty *property) override;
+private:
+    QScopedPointer<QtPathPropertyManagerPrivate> d_ptr;
+    Q_DECLARE_PRIVATE(QtPathPropertyManager)
+    Q_DISABLE_COPY_MOVE(QtPathPropertyManager)
+};
+
 class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtGroupPropertyManager : public QtAbstractPropertyManager
 {
     Q_OBJECT

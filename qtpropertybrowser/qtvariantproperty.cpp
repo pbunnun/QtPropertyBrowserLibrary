@@ -70,12 +70,17 @@ class QtFilePathPropertyType
 {
 };
 
+class QtPathPropertyType
+{
+};
+
 QT_END_NAMESPACE
 
 Q_DECLARE_METATYPE(QtEnumPropertyType)
 Q_DECLARE_METATYPE(QtFlagPropertyType)
 Q_DECLARE_METATYPE(QtGroupPropertyType)
 Q_DECLARE_METATYPE(QtFilePathPropertyType)
+Q_DECLARE_METATYPE(QtPathPropertyType)
 
 QT_BEGIN_NAMESPACE
 
@@ -145,6 +150,11 @@ int QtVariantPropertyManager::iconMapTypeId()
 int QtVariantPropertyManager::filePathTypeId()
 {
     return qMetaTypeId<QtFilePathPropertyType>();
+}
+
+int QtVariantPropertyManager::pathTypeId()
+{
+    return qMetaTypeId<QtPathPropertyType>();
 }
 
 typedef QMap<const QtProperty *, QtProperty *> PropertyMap;
@@ -834,6 +844,9 @@ void QtVariantPropertyManagerPrivate::slotFlagNamesChanged(QtProperty *property,
     \row
         \li FilePath
         \li filePathTypeId()
+    \row
+        \li Path
+        \li pathTypeId()
     \endtable
 
     Each property type can provide additional attributes,
@@ -1338,6 +1351,13 @@ QtVariantPropertyManager::QtVariantPropertyManager(QObject *parent)
             this, SLOT(slotFilePathFilterChanged(QtProperty *, const QString &)));
     connect(filePathPropertyManager, SIGNAL(modeChanged(QtProperty *, const QString &)),
             this, SLOT(slotFilePathModeChanged(QtProperty *, const QString &)));
+    // PathPropertyManager
+    int pathId = pathTypeId();
+    QtPathPropertyManager *pathPropertyManager = new QtPathPropertyManager(this);
+    d_ptr->m_typeToPropertyManager[pathId] = pathPropertyManager;
+    d_ptr->m_typeToValueType[pathId] = QMetaType::QString;
+    connect(pathPropertyManager, SIGNAL(valueChanged(QtProperty *, const QString &)),
+            this, SLOT(slotValueChanged(QtProperty *, const QString &)));
 }
 
 /*!
@@ -1473,7 +1493,10 @@ QVariant QtVariantPropertyManager::value(const QtProperty *property) const
         return flagManager->value(internProp);
     } else if (QtFilePathPropertyManager *filePathManager = qobject_cast<QtFilePathPropertyManager *>(manager)) {
         return filePathManager->value(internProp);
+    } else if (QtPathPropertyManager *pathManager = qobject_cast<QtPathPropertyManager *>(manager)) {
+        return pathManager->value(internProp);
     }
+
     return QVariant();
 }
 
@@ -1780,6 +1803,9 @@ void QtVariantPropertyManager::setValue(QtProperty *property, const QVariant &va
     } else if (QtFilePathPropertyManager *filePathManager = qobject_cast<QtFilePathPropertyManager *>(manager)) {
         filePathManager->setValue(internProp, qvariant_cast<QString>(val));
         return;
+    } else if (QtPathPropertyManager *pathManager = qobject_cast<QtPathPropertyManager *>(manager)) {
+        pathManager->setValue(internProp, qvariant_cast<QString>(val));
+        return;
     }
 }
 
@@ -2025,6 +2051,7 @@ public:
     QtColorEditorFactory       *m_colorEditorFactory;
     QtFontEditorFactory        *m_fontEditorFactory;
     QtFilePathEditorFactory    *m_filePathEditorFactory;
+    QtPathEditorFactory 	   *m_pathEditorFactory;
 
     QMap<QtAbstractEditorFactoryBase *, int> m_factoryToType;
     QMap<int, QtAbstractEditorFactoryBase *> m_typeToFactory;
@@ -2081,6 +2108,9 @@ public:
         \li QComboBox
     \row
         \li FilePath
+        \li customized editor
+    \row
+        \li Path
         \li customized editor
     \endtable
 
@@ -2158,6 +2188,12 @@ QtVariantEditorFactory::QtVariantEditorFactory(QObject *parent)
     const int filePathId = QtVariantPropertyManager::filePathTypeId();
     d_ptr->m_factoryToType[d_ptr->m_filePathEditorFactory] = filePathId;
     d_ptr->m_typeToFactory[filePathId] = d_ptr->m_filePathEditorFactory;
+
+    d_ptr->m_pathEditorFactory = new QtPathEditorFactory(this);
+    const int pathId = QtVariantPropertyManager::pathTypeId();
+    d_ptr->m_factoryToType[d_ptr->m_pathEditorFactory] = pathId;
+    d_ptr->m_typeToFactory[pathId] = d_ptr->m_pathEditorFactory;
+
 }
 
 /*!
@@ -2273,6 +2309,10 @@ void QtVariantEditorFactory::connectPropertyManager(QtVariantPropertyManager *ma
     const auto filePathPropertyManagers = manager->findChildren<QtFilePathPropertyManager *>();
     for (QtFilePathPropertyManager *manager : filePathPropertyManagers)
         d_ptr->m_filePathEditorFactory->addPropertyManager(manager);
+
+    const auto pathPropertyManagers = manager->findChildren<QtPathPropertyManager *>();
+    for (QtPathPropertyManager *manager : pathPropertyManagers)
+        d_ptr->m_pathEditorFactory->addPropertyManager(manager);
 }
 
 /*!
@@ -2396,6 +2436,10 @@ void QtVariantEditorFactory::disconnectPropertyManager(QtVariantPropertyManager 
     const auto filePathPropertyManagers = manager->findChildren<QtFilePathPropertyManager *>();
     for (QtFilePathPropertyManager *manager : filePathPropertyManagers)
         d_ptr->m_filePathEditorFactory->removePropertyManager(manager);
+
+    const auto pathPropertyManagers = manager->findChildren<QtPathPropertyManager *>();
+    for (QtPathPropertyManager *manager : pathPropertyManagers)
+        d_ptr->m_pathEditorFactory->removePropertyManager(manager);
 }
 
 QT_END_NAMESPACE

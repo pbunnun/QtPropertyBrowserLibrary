@@ -626,6 +626,70 @@ void QtFilePathPropertyManager::setMode(QtProperty *property, const QString &mod
     emit modeChanged(property, data.mode);
 }
 
+// QtPathPropertyManager
+class QtPathPropertyManagerPrivate
+{
+    QtPathPropertyManager *q_ptr;
+    Q_DECLARE_PUBLIC(QtPathPropertyManager)
+public:
+    struct Data
+    {
+        QString value;
+    };
+
+    typedef QMap<const QtProperty *, Data> PropertyValueMap;
+    PropertyValueMap m_values;
+};
+
+QtPathPropertyManager::QtPathPropertyManager(QObject *parent )
+    : QtAbstractPropertyManager(parent), d_ptr(new QtPathPropertyManagerPrivate)
+{
+    d_ptr->q_ptr = this;
+}
+
+QtPathPropertyManager::~QtPathPropertyManager()
+{
+    clear();
+}
+
+QString QtPathPropertyManager::valueText(const QtProperty *property) const
+{
+    return value(property);
+}
+
+void QtPathPropertyManager::initializeProperty(QtProperty *property)
+{
+    d_ptr->m_values[property] = QtPathPropertyManagerPrivate::Data();
+}
+
+void QtPathPropertyManager::uninitializeProperty(QtProperty *property)
+{
+    d_ptr->m_values.remove(property);
+}
+
+QString QtPathPropertyManager::value(const QtProperty *property) const
+{
+    return getData<QString>(d_ptr->m_values, &QtPathPropertyManagerPrivate::Data::value, property);
+}
+
+void QtPathPropertyManager::setValue(QtProperty *property, const QString &val)
+{
+    const QtPathPropertyManagerPrivate::PropertyValueMap::iterator it = d_ptr->m_values.find(property);
+    if ( it == d_ptr->m_values.end() )
+        return;
+
+    QtPathPropertyManagerPrivate::Data data = it.value();
+
+    if (data.value == val)
+        return;
+
+    data.value = val;
+    it.value() = data;
+
+    emit propertyChanged(property);
+    emit valueChanged(property, data.value);
+}
+
 // QtGroupPropertyManager
 
 /*!
