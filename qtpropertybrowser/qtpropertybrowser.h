@@ -44,6 +44,7 @@
 #include <QtCore/QSet>
 #include <QLineEdit>
 #include <QtPropertyBrowserLibrary.hpp>
+#include "migrate_qt.h"
 
 QT_BEGIN_NAMESPACE
 
