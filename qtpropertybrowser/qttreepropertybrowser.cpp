@@ -3,7 +3,6 @@
 
 #include "qttreepropertybrowser.h"
 #include <QtCore/QSet>
-#include <QtCore/QMap>
 #include <QtGui/QIcon>
 #include <QtWidgets/QTreeWidget>
 #include <QtWidgets/QItemDelegate>
@@ -162,15 +161,18 @@ void QtPropertyEditorView::keyPressEvent(QKeyEvent *event)
 void QtPropertyEditorView::mousePressEvent(QMouseEvent *event)
 {
     QTreeWidget::mousePressEvent(event);
-    QTreeWidgetItem *item = itemAt(event->position().toPoint());
+    QTreeWidgetItem *item = itemAt(event->pos());
+    //QTreeWidgetItem *item = itemAt(event->position().toPoint());
 
     if (item) {
         if ((item != m_editorPrivate->editedItem()) && (event->button() == Qt::LeftButton)
-                && (header()->logicalIndexAt(event->position().toPoint().x()) == 1)
+                //&& (header()->logicalIndexAt(event->position().toPoint().x()) == 1)
+                && (header()->logicalIndexAt(event->pos().x()) == 1)
                 && ((item->flags() & (Qt::ItemIsEditable | Qt::ItemIsEnabled)) == (Qt::ItemIsEditable | Qt::ItemIsEnabled))) {
             editItem(item, 1);
         } else if (!m_editorPrivate->hasValue(item) && m_editorPrivate->markPropertiesWithoutValue() && !rootIsDecorated()) {
-            if (event->position().toPoint().x() + header()->offset() < 20)
+            //if (event->position().toPoint().x() + header()->offset() < 20)
+            if (event->pos().x() + header()->offset() < 20)
                 item->setExpanded(!item->isExpanded());
         }
     }

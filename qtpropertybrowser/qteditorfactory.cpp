@@ -18,6 +18,7 @@
 #include <QtWidgets/QToolButton>
 #include <QtWidgets/QColorDialog>
 #include <QtWidgets/QFontDialog>
+#include <QtWidgets/QFileDialog>
 #include <QtWidgets/QSpacerItem>
 #include <QtWidgets/QKeySequenceEdit>
 #include <QtCore/QMap>
@@ -110,6 +111,7 @@ public:
     void slotPropertyChanged(QtProperty *property, int value);
     void slotRangeChanged(QtProperty *property, int min, int max);
     void slotSingleStepChanged(QtProperty *property, int step);
+    void slotReadOnlyChanged(QtProperty *property, bool readOnly);
     void slotSetValue(int value);
 };
 
@@ -153,6 +155,23 @@ void QtSpinBoxFactoryPrivate::slotSingleStepChanged(QtProperty *property, int st
     for (QSpinBox *editor : it.value()) {
         editor->blockSignals(true);
         editor->setSingleStep(step);
+        editor->blockSignals(false);
+    }
+}
+
+void QtSpinBoxFactoryPrivate::slotReadOnlyChanged( QtProperty *property, bool readOnly)
+{
+    const auto it = m_createdEditors.constFind(property);
+    if( it == m_createdEditors.cend() )
+        return;
+
+    QtIntPropertyManager *manager = q_ptr->propertyManager(property);
+    if (!manager)
+        return;
+
+    for(QSpinBox *editor : it.value()) {
+        editor->blockSignals(true);
+        editor->setReadOnly(readOnly);
         editor->blockSignals(false);
     }
 }
@@ -216,6 +235,8 @@ void QtSpinBoxFactory::connectPropertyManager(QtIntPropertyManager *manager)
                 this, SLOT(slotRangeChanged(QtProperty*,int,int)));
     connect(manager, SIGNAL(singleStepChanged(QtProperty*,int)),
                 this, SLOT(slotSingleStepChanged(QtProperty*,int)));
+    connect(manager, SIGNAL(readOnlyChanged(QtProperty *, bool)),
+                this, SLOT(slotReadOnlyChanged(QtProperty *, bool)));
 }
 
 /*!
@@ -231,6 +252,7 @@ QWidget *QtSpinBoxFactory::createEditor(QtIntPropertyManager *manager, QtPropert
     editor->setRange(manager->minimum(property), manager->maximum(property));
     editor->setValue(manager->value(property));
     editor->setKeyboardTracking(false);
+    editor->setReadOnly(manager->isReadOnly(property));
 
     connect(editor, SIGNAL(valueChanged(int)), this, SLOT(slotSetValue(int)));
     connect(editor, SIGNAL(destroyed(QObject*)),
@@ -251,6 +273,8 @@ void QtSpinBoxFactory::disconnectPropertyManager(QtIntPropertyManager *manager)
                 this, SLOT(slotRangeChanged(QtProperty*,int,int)));
     disconnect(manager, SIGNAL(singleStepChanged(QtProperty*,int)),
                 this, SLOT(slotSingleStepChanged(QtProperty*,int)));
+    disconnect(manager, SIGNAL(readOnlyChanged(QtProperty *, bool)),
+                this, SLOT(slotReadOnlyChanged(QtProperty *, bool)));
 }
 
 // QtSliderFactory
@@ -563,6 +587,7 @@ class QtCheckBoxFactoryPrivate : public EditorFactoryPrivate<QtBoolEdit>
 public:
     void slotPropertyChanged(QtProperty *property, bool value);
     void slotSetValue(bool value);
+    void slotReadOnlyChanged(QtProperty *, bool);
 };
 
 void QtCheckBoxFactoryPrivate::slotPropertyChanged(QtProperty *property, bool value)
@@ -575,6 +600,23 @@ void QtCheckBoxFactoryPrivate::slotPropertyChanged(QtProperty *property, bool va
         editor->blockCheckBoxSignals(true);
         editor->setChecked(value);
         editor->blockCheckBoxSignals(false);
+    }
+}
+
+void QtCheckBoxFactoryPrivate::slotReadOnlyChanged(QtProperty *property, bool readOnly)
+{
+    const auto it = m_createdEditors.constFind(property);
+    if( it == m_createdEditors.constEnd() )
+        return;
+
+    QtBoolPropertyManager *manager = q_ptr->propertyManager(property);
+    if (!manager )
+        return;
+
+    for (QtBoolEdit *editor : it.value()) {
+        editor->blockSignals(true);
+        editor->setDisabled(readOnly);
+        editor->blockSignals(false);
     }
 }
 
@@ -645,6 +687,7 @@ QWidget *QtCheckBoxFactory::createEditor(QtBoolPropertyManager *manager, QtPrope
 {
     QtBoolEdit *editor = d_ptr->createEditor(property, parent);
     editor->setChecked(manager->value(property));
+    editor->setDisabled(manager->isReadOnly(property));
 
     connect(editor, SIGNAL(toggled(bool)), this, SLOT(slotSetValue(bool)));
     connect(editor, SIGNAL(destroyed(QObject*)),
@@ -675,6 +718,7 @@ public:
     void slotRangeChanged(QtProperty *property, double min, double max);
     void slotSingleStepChanged(QtProperty *property, double step);
     void slotDecimalsChanged(QtProperty *property, int prec);
+    void slotReadOnlyChanged(QtProperty *property, bool readOnly);
     void slotSetValue(double value);
 };
 
@@ -724,6 +768,23 @@ void QtDoubleSpinBoxFactoryPrivate::slotSingleStepChanged(QtProperty *property, 
     for (QDoubleSpinBox *editor : it.value()) {
         editor->blockSignals(true);
         editor->setSingleStep(step);
+        editor->blockSignals(false);
+    }
+}
+
+void QtDoubleSpinBoxFactoryPrivate::slotReadOnlyChanged( QtProperty *property, bool readOnly)
+{
+    const auto it = m_createdEditors.constFind(property);
+    if(it == m_createdEditors.cend())
+        return;
+
+    QtDoublePropertyManager *manager = q_ptr->propertyManager(property);
+    if (!manager)
+        return;
+
+    for(QDoubleSpinBox *editor : it.value()) {
+        editor->blockSignals(true);
+        editor->setReadOnly(readOnly);
         editor->blockSignals(false);
     }
 }
@@ -806,6 +867,8 @@ void QtDoubleSpinBoxFactory::connectPropertyManager(QtDoublePropertyManager *man
                 this, SLOT(slotSingleStepChanged(QtProperty*,double)));
     connect(manager, SIGNAL(decimalsChanged(QtProperty*,int)),
                 this, SLOT(slotDecimalsChanged(QtProperty*,int)));
+    connect(manager, SIGNAL(readOnlyChanged(QtProperty *, bool)),
+                this, SLOT(slotReadOnlyChanged(QtProperty *, bool)));
 }
 
 /*!
@@ -822,6 +885,7 @@ QWidget *QtDoubleSpinBoxFactory::createEditor(QtDoublePropertyManager *manager,
     editor->setRange(manager->minimum(property), manager->maximum(property));
     editor->setValue(manager->value(property));
     editor->setKeyboardTracking(false);
+    editor->setReadOnly(manager->isReadOnly(property));
 
     connect(editor, SIGNAL(valueChanged(double)), this, SLOT(slotSetValue(double)));
     connect(editor, SIGNAL(destroyed(QObject*)),
@@ -844,6 +908,8 @@ void QtDoubleSpinBoxFactory::disconnectPropertyManager(QtDoublePropertyManager *
                 this, SLOT(slotSingleStepChanged(QtProperty*,double)));
     disconnect(manager, SIGNAL(decimalsChanged(QtProperty*,int)),
                 this, SLOT(slotDecimalsChanged(QtProperty*,int)));
+    disconnect(manager, SIGNAL(readOnlyChanged(QtProperty*, bool)),
+                this, SLOT(slotReadOnlyChanged(QtProperty*, bool)));
 }
 
 // QtLineEditFactory
@@ -857,6 +923,7 @@ public:
     void slotPropertyChanged(QtProperty *property, const QString &value);
     void slotRegExpChanged(QtProperty *property, const QRegularExpression &regExp);
     void slotSetValue(const QString &value);
+    void slotReadOnlyChanged(QtProperty *, bool);
 };
 
 void QtLineEditFactoryPrivate::slotPropertyChanged(QtProperty *property,
@@ -893,6 +960,23 @@ void QtLineEditFactoryPrivate::slotRegExpChanged(QtProperty *property,
         editor->setValidator(newValidator);
         if (oldValidator)
             delete oldValidator;
+        editor->blockSignals(false);
+    }
+}
+
+void QtLineEditFactoryPrivate::slotReadOnlyChanged( QtProperty *property, bool readOnly)
+{
+    const auto it = m_createdEditors.constFind(property);
+    if ( it == m_createdEditors.constEnd())
+        return;
+
+    QtStringPropertyManager *manager = q_ptr->propertyManager(property);
+    if (!manager)
+        return;
+
+    for(QLineEdit *editor : it.value()) {
+        editor->blockSignals(true);
+        editor->setReadOnly(readOnly);
         editor->blockSignals(false);
     }
 }
@@ -953,6 +1037,8 @@ void QtLineEditFactory::connectPropertyManager(QtStringPropertyManager *manager)
                 this, SLOT(slotPropertyChanged(QtProperty*,QString)));
     connect(manager, SIGNAL(regExpChanged(QtProperty*,QRegularExpression)),
                 this, SLOT(slotRegExpChanged(QtProperty*,QRegularExpression)));
+    connect(manager, SIGNAL(readOnlyChanged(QtProperty*, bool)),
+                this, SLOT(slotReadOnlyChanged(QtProperty *, bool)));
 }
 
 /*!
@@ -965,6 +1051,7 @@ QWidget *QtLineEditFactory::createEditor(QtStringPropertyManager *manager,
 {
 
     QLineEdit *editor = d_ptr->createEditor(property, parent);
+    editor->setReadOnly(manager->isReadOnly(property));
     QRegularExpression regExp = manager->regExp(property);
     if (regExp.isValid() && !regExp.pattern().isEmpty()) {
         QValidator *validator = new QRegularExpressionValidator(regExp, editor);
@@ -990,6 +1077,8 @@ void QtLineEditFactory::disconnectPropertyManager(QtStringPropertyManager *manag
                 this, SLOT(slotPropertyChanged(QtProperty*,QString)));
     disconnect(manager, SIGNAL(regExpChanged(QtProperty*,QRegularExpression)),
                 this, SLOT(slotRegExpChanged(QtProperty*,QRegularExpression)));
+    disconnect(manager, SIGNAL(readOnlyChanged(QtProperty*, bool)),
+                this, SLOT(slotReadOnlyChanged(QtProperty *, bool)));
 }
 
 // QtDateEditFactory
@@ -2485,6 +2574,367 @@ QWidget *QtFontEditorFactory::createEditor(QtFontPropertyManager *manager,
 void QtFontEditorFactory::disconnectPropertyManager(QtFontPropertyManager *manager)
 {
     disconnect(manager, SIGNAL(valueChanged(QtProperty*,QFont)), this, SLOT(slotPropertyChanged(QtProperty*,QFont)));
+}
+
+
+// QtFilePathEditWidget
+
+class QtFilePathEditWidget : public QWidget
+{
+    Q_OBJECT
+public:
+    QtFilePathEditWidget(QWidget *parent = 0);
+    void setFilePath(const QString &filePath) { if (theLineEdit->text() != filePath) theLineEdit->setText(filePath); }
+    QString filePath() const { return theLineEdit->text(); }
+    void setFilter(const QString &filter) { theFilter = filter; }
+    QString filter() const { return theFilter; }
+    void setMode(const QString &mode) { theMode = mode; }
+    QString mode() { return theMode; }
+signals:
+    void filePathChanged(const QString &filePath);
+protected:
+    void focusInEvent(QFocusEvent *e);
+    void focusOutEvent(QFocusEvent *e);
+    void keyPressEvent(QKeyEvent *e);
+    void keyReleaseEvent(QKeyEvent *e);
+private slots:
+    void buttonClicked();
+private:
+    QLineEdit *theLineEdit;
+    QString theFilter;
+    QString theMode;
+};
+
+QtFilePathEditWidget::QtFilePathEditWidget(QWidget *parent)
+    : QWidget(parent)
+{
+    QHBoxLayout *layout = new QHBoxLayout(this);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    layout->setContentsMargins(0, 0, 0, 0);
+#else
+    layout->setMargin(0);
+#endif
+    layout->setSpacing(0);
+    theLineEdit = new QLineEdit(this);
+    theLineEdit->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred));
+    QToolButton *button = new QToolButton(this);
+    button->setSizePolicy(QSizePolicy(QSizePolicy::Fixed, QSizePolicy::Preferred));
+    button->setText(QLatin1String("..."));
+    layout->addWidget(theLineEdit);
+    layout->addWidget(button);
+    setFocusProxy(theLineEdit);
+    setFocusPolicy(Qt::StrongFocus);
+    setAttribute(Qt::WA_InputMethodEnabled);
+    connect(theLineEdit, SIGNAL(textEdited(const QString &)),
+                this, SIGNAL(filePathChanged(const QString &)));
+    connect(button, SIGNAL(clicked()),
+                this, SLOT(buttonClicked()));
+}
+
+void QtFilePathEditWidget::buttonClicked()
+{
+    QString filePath;
+    if (theMode == "save")
+        filePath = QFileDialog::getSaveFileName(this, tr("Save file"), theLineEdit->text(), theFilter);
+    else 
+        filePath = QFileDialog::getOpenFileName(this, tr("Open file"), theLineEdit->text(), theFilter);
+
+    if (filePath.isNull())
+        return;
+    theLineEdit->setText(filePath);
+    emit filePathChanged(filePath);
+}
+
+void QtFilePathEditWidget::focusInEvent(QFocusEvent *e)
+{
+    theLineEdit->event(e);
+    if (e->reason() == Qt::TabFocusReason || e->reason() == Qt::BacktabFocusReason) {
+        theLineEdit->selectAll();
+    }
+    QWidget::focusInEvent(e);
+}
+
+void QtFilePathEditWidget::focusOutEvent(QFocusEvent *e)
+{
+    theLineEdit->event(e);
+    QWidget::focusOutEvent(e);
+}
+
+void QtFilePathEditWidget::keyPressEvent(QKeyEvent *e)
+{
+    theLineEdit->event(e);
+}
+
+void QtFilePathEditWidget::keyReleaseEvent(QKeyEvent *e)
+{
+    theLineEdit->event(e);
+}
+
+// QtFilePathEditorFactoryPrivate
+class QtFilePathEditorFactoryPrivate : public EditorFactoryPrivate<QtFilePathEditWidget>
+{
+    QtFilePathEditorFactory *q_ptr;
+    Q_DECLARE_PUBLIC(QtFilePathEditorFactory)
+public:
+    void slotPropertyChanged(QtProperty *property, const QString &value);
+    void slotSetValue(const QString & value);
+    void slotFilterChanged(QtProperty *property, const QString & value);
+    void slotModeChanged(QtProperty *property, const QString & value );
+};
+
+void QtFilePathEditorFactoryPrivate::slotPropertyChanged(QtProperty *property, const QString &value)
+{
+    const PropertyToEditorListMap::const_iterator it = m_createdEditors.constFind(property);
+    if( it == m_createdEditors.constEnd() )
+        return;
+
+    for( QtFilePathEditWidget *e : it.value() )
+        e->setFilePath(value);
+}
+
+void QtFilePathEditorFactoryPrivate::slotSetValue( const QString & value )
+{
+    QObject * object = q_ptr->sender();
+    const EditorToPropertyMap::ConstIterator ecend = m_editorToProperty.constEnd();
+    for( EditorToPropertyMap::ConstIterator itEditor = m_editorToProperty.constBegin(); itEditor != ecend; ++itEditor )
+    {
+        if( itEditor.key() == object )
+        {
+            QtProperty *property = itEditor.value();
+            QtFilePathPropertyManager *manager = q_ptr->propertyManager(property);
+            if(!manager)
+                return;
+            manager->setValue(property, value);
+            return;
+        }
+    }
+}
+
+void QtFilePathEditorFactoryPrivate::slotFilterChanged(QtProperty * property, const QString & value )
+{
+    const auto it = m_createdEditors.constFind(property);
+    if( it == m_createdEditors.constEnd() )
+        return;
+
+    for( QtFilePathEditWidget * e : it.value() )
+        e->setFilter(value);
+}
+
+void QtFilePathEditorFactoryPrivate::slotModeChanged(QtProperty *property, const QString & value )
+{
+    const auto it = m_createdEditors.constFind(property);
+    if( it == m_createdEditors.constEnd() )
+        return;
+
+    for( QtFilePathEditWidget * e : it.value() )
+        e->setMode(value);
+}
+
+// QtFilePathEditorFactory
+QtFilePathEditorFactory::QtFilePathEditorFactory(QObject *parent) :
+    QtAbstractEditorFactory<QtFilePathPropertyManager>(parent),
+    d_ptr(new QtFilePathEditorFactoryPrivate() )
+{
+    d_ptr->q_ptr = this;
+}
+
+QtFilePathEditorFactory::~QtFilePathEditorFactory()
+{
+    qDeleteAll(d_ptr->m_editorToProperty.keys());
+}
+
+void QtFilePathEditorFactory::connectPropertyManager(QtFilePathPropertyManager *manager)
+{
+    connect(manager, SIGNAL(valueChanged(QtProperty *, const QString &)),
+                this, SLOT(slotPropertyChanged(QtProperty *, const QString &)));
+    connect(manager, SIGNAL(filterChanged(QtProperty *, const QString &)),
+                this, SLOT(slotFilterChanged(QtProperty *, const QString &)));
+    connect(manager, SIGNAL(modeChanged(QtProperty *, const QString &)),
+                this, SLOT(slotModeChanged(QtProperty *, const QString &)));
+}
+
+QWidget *QtFilePathEditorFactory::createEditor(QtFilePathPropertyManager *manager,
+        QtProperty *property, QWidget *parent)
+{
+    QtFilePathEditWidget *editor = d_ptr->createEditor(property, parent);
+    editor->setFilePath(manager->value(property));
+    editor->setFilter(manager->filter(property));
+    editor->setMode(manager->mode(property));
+
+    connect(editor, SIGNAL(filePathChanged(const QString &)),
+                this, SLOT(slotSetValue(const QString &)));
+    connect(editor, SIGNAL(destroyed(QObject *)),
+                this, SLOT(slotEditorDestroyed(QObject *)));
+    return editor;
+}
+
+void QtFilePathEditorFactory::disconnectPropertyManager(QtFilePathPropertyManager *manager)
+{
+    disconnect(manager, SIGNAL(valueChanged(QtProperty *, const QString &)),
+                this, SLOT(slotPropertyChanged(QtProperty *, const QString &)));
+    disconnect(manager, SIGNAL(filterChanged(QtProperty *, const QString &)),
+                this, SLOT(slotFilterChanged(QtProperty *, const QString &)));
+    disconnect(manager, SIGNAL(modeChanged(QtProperty *, const QString &)),
+                this, SLOT(slotModeChanged(QtProperty *, const QString &)));
+}
+
+// QtPathEditWidget
+
+class QtPathEditWidget : public QWidget
+{
+    Q_OBJECT
+public:
+    QtPathEditWidget(QWidget *parent = 0);
+    void setPath(const QString &path) { if (theLineEdit->text() != path) theLineEdit->setText(path); }
+    QString path() const { return theLineEdit->text(); }
+
+signals:
+    void pathChanged(const QString &path);
+protected:
+    void focusInEvent(QFocusEvent *e);
+    void focusOutEvent(QFocusEvent *e);
+    void keyPressEvent(QKeyEvent *e);
+    void keyReleaseEvent(QKeyEvent *e);
+private slots:
+    void buttonClicked();
+private:
+    QLineEdit *theLineEdit;
+};
+
+QtPathEditWidget::QtPathEditWidget(QWidget *parent)
+    : QWidget(parent)
+{
+    QHBoxLayout *layout = new QHBoxLayout(this);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    layout->setContentsMargins(0, 0, 0, 0);
+#else
+    layout->setMargin(0);
+#endif
+    layout->setSpacing(0);
+    theLineEdit = new QLineEdit(this);
+    theLineEdit->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred));
+    QToolButton *button = new QToolButton(this);
+    button->setSizePolicy(QSizePolicy(QSizePolicy::Fixed, QSizePolicy::Preferred));
+    button->setText(QLatin1String("..."));
+    layout->addWidget(theLineEdit);
+    layout->addWidget(button);
+    setFocusProxy(theLineEdit);
+    setFocusPolicy(Qt::StrongFocus);
+    setAttribute(Qt::WA_InputMethodEnabled);
+    connect(theLineEdit, SIGNAL(textEdited(const QString &)),
+                this, SIGNAL(pathChanged(const QString &)));
+    connect(button, SIGNAL(clicked()),
+                this, SLOT(buttonClicked()));
+}
+
+void QtPathEditWidget::buttonClicked()
+{
+    QString path = QFileDialog::getExistingDirectory(this, tr("Directory"), theLineEdit->text() );
+    if (path.isNull())
+        return;
+    theLineEdit->setText(path);
+    emit pathChanged(path);
+}
+
+void QtPathEditWidget::focusInEvent(QFocusEvent *e)
+{
+    theLineEdit->event(e);
+    if (e->reason() == Qt::TabFocusReason || e->reason() == Qt::BacktabFocusReason) {
+        theLineEdit->selectAll();
+    }
+    QWidget::focusInEvent(e);
+}
+
+void QtPathEditWidget::focusOutEvent(QFocusEvent *e)
+{
+    theLineEdit->event(e);
+    QWidget::focusOutEvent(e);
+}
+
+void QtPathEditWidget::keyPressEvent(QKeyEvent *e)
+{
+    theLineEdit->event(e);
+}
+
+void QtPathEditWidget::keyReleaseEvent(QKeyEvent *e)
+{
+    theLineEdit->event(e);
+}
+
+// QtPathEditorFactoryPrivate
+class QtPathEditorFactoryPrivate : public EditorFactoryPrivate<QtPathEditWidget>
+{
+    QtPathEditorFactory *q_ptr;
+    Q_DECLARE_PUBLIC(QtPathEditorFactory)
+public:
+    void slotPropertyChanged(QtProperty *property, const QString &value);
+    void slotSetValue(const QString & value);
+};
+
+void QtPathEditorFactoryPrivate::slotPropertyChanged(QtProperty *property, const QString &value)
+{
+    const PropertyToEditorListMap::const_iterator it = m_createdEditors.constFind(property);
+    if( it == m_createdEditors.constEnd() )
+        return;
+
+    for( QtPathEditWidget *e : it.value() )
+        e->setPath(value);
+}
+
+void QtPathEditorFactoryPrivate::slotSetValue( const QString & value )
+{
+    QObject * object = q_ptr->sender();
+    const EditorToPropertyMap::ConstIterator ecend = m_editorToProperty.constEnd();
+    for( EditorToPropertyMap::ConstIterator itEditor = m_editorToProperty.constBegin(); itEditor != ecend; ++itEditor )
+    {
+        if( itEditor.key() == object )
+        {
+            QtProperty *property = itEditor.value();
+            QtPathPropertyManager *manager = q_ptr->propertyManager(property);
+            if(!manager)
+                return;
+            manager->setValue(property, value);
+            return;
+        }
+    }
+}
+
+// QtPathEditorFactory
+QtPathEditorFactory::QtPathEditorFactory(QObject *parent) :
+    QtAbstractEditorFactory<QtPathPropertyManager>(parent),
+    d_ptr(new QtPathEditorFactoryPrivate() )
+{
+    d_ptr->q_ptr = this;
+}
+
+QtPathEditorFactory::~QtPathEditorFactory()
+{
+    qDeleteAll(d_ptr->m_editorToProperty.keys());
+}
+
+void QtPathEditorFactory::connectPropertyManager(QtPathPropertyManager *manager)
+{
+    connect(manager, SIGNAL(valueChanged(QtProperty *, const QString &)),
+                this, SLOT(slotPropertyChanged(QtProperty *, const QString &)));
+}
+
+QWidget *QtPathEditorFactory::createEditor(QtPathPropertyManager *manager,
+        QtProperty *property, QWidget *parent)
+{
+    QtPathEditWidget *editor = d_ptr->createEditor(property, parent);
+    editor->setPath(manager->value(property));
+
+    connect(editor, SIGNAL(pathChanged(const QString &)),
+                this, SLOT(slotSetValue(const QString &)));
+    connect(editor, SIGNAL(destroyed(QObject *)),
+                this, SLOT(slotEditorDestroyed(QObject *)));
+    return editor;
+}
+
+void QtPathEditorFactory::disconnectPropertyManager(QtPathPropertyManager *manager)
+{
+    disconnect(manager, SIGNAL(valueChanged(QtProperty *, const QString &)),
+                this, SLOT(slotPropertyChanged(QtProperty *, const QString &)));
 }
 
 QT_END_NAMESPACE

@@ -7,6 +7,7 @@
 #include "qtpropertybrowser.h"
 #include <QtCore/QVariant>
 #include <QtGui/QIcon>
+#include "QtPropertyBrowserLibrary.hpp"
 
 QT_BEGIN_NAMESPACE
 
@@ -16,7 +17,7 @@ typedef QMap<int, QIcon> QtIconMap;
 
 class QtVariantPropertyManager;
 
-class QtVariantProperty : public QtProperty
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtVariantProperty : public QtProperty
 {
 public:
     ~QtVariantProperty();
@@ -34,7 +35,7 @@ private:
     QScopedPointer<class QtVariantPropertyPrivate> d_ptr;
 };
 
-class QtVariantPropertyManager : public QtAbstractPropertyManager
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtVariantPropertyManager : public QtAbstractPropertyManager
 {
     Q_OBJECT
 public:
@@ -59,6 +60,8 @@ public:
     static int flagTypeId();
     static int groupTypeId();
     static int iconMapTypeId();
+    static int filePathTypeId();
+    static int pathTypeId();
 public Q_SLOTS:
     virtual void setValue(QtProperty *property, const QVariant &val);
     virtual void setAttribute(QtProperty *property,
@@ -86,6 +89,7 @@ private:
     Q_PRIVATE_SLOT(d_func(), void slotValueChanged(QtProperty *, bool))
     Q_PRIVATE_SLOT(d_func(), void slotValueChanged(QtProperty *, const QString &))
     Q_PRIVATE_SLOT(d_func(), void slotRegExpChanged(QtProperty *, const QRegularExpression &))
+    Q_PRIVATE_SLOT(d_func(), void slotEchoModeChanged(QtProperty *, int))
     Q_PRIVATE_SLOT(d_func(), void slotValueChanged(QtProperty *, QDate))
     Q_PRIVATE_SLOT(d_func(), void slotRangeChanged(QtProperty *, QDate, QDate))
     Q_PRIVATE_SLOT(d_func(), void slotValueChanged(QtProperty *, QTime))
@@ -110,14 +114,17 @@ private:
     Q_PRIVATE_SLOT(d_func(), void slotValueChanged(QtProperty *, const QFont &))
     Q_PRIVATE_SLOT(d_func(), void slotValueChanged(QtProperty *, const QCursor &))
     Q_PRIVATE_SLOT(d_func(), void slotFlagNamesChanged(QtProperty *, const QStringList &))
-
+    Q_PRIVATE_SLOT(d_func(), void slotReadOnlyChanged(QtProperty *, bool))
+    Q_PRIVATE_SLOT(d_func(), void slotTextVisibleChanged(QtProperty *, bool))
+    Q_PRIVATE_SLOT(d_func(), void slotFilePathFilterChanged(QtProperty *, const QString &))
+    Q_PRIVATE_SLOT(d_func(), void slotFilePathModeChanged(QtProperty *, const QString &))
     Q_PRIVATE_SLOT(d_func(), void slotPropertyInserted(QtProperty *, QtProperty *, QtProperty *))
     Q_PRIVATE_SLOT(d_func(), void slotPropertyRemoved(QtProperty *, QtProperty *))
     Q_DECLARE_PRIVATE(QtVariantPropertyManager)
     Q_DISABLE_COPY_MOVE(QtVariantPropertyManager)
 };
 
-class QtVariantEditorFactory : public QtAbstractEditorFactory<QtVariantPropertyManager>
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtVariantEditorFactory : public QtAbstractEditorFactory<QtVariantPropertyManager>
 {
     Q_OBJECT
 public:

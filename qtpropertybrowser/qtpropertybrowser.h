@@ -6,13 +6,18 @@
 
 #include <QtWidgets/QWidget>
 #include <QtCore/QSet>
+#include <QLineEdit>
+#include <QtPropertyBrowserLibrary.hpp>
+#include "migrate_qt.h"
 
 QT_BEGIN_NAMESPACE
+
+typedef QLineEdit::EchoMode EchoMode;
 
 class QtAbstractPropertyManager;
 class QtPropertyPrivate;
 
-class QtProperty
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtProperty
 {
 public:
     virtual ~QtProperty();
@@ -56,7 +61,7 @@ private:
 
 class QtAbstractPropertyManagerPrivate;
 
-class QtAbstractPropertyManager : public QObject
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtAbstractPropertyManager : public QObject
 {
     Q_OBJECT
 public:
@@ -89,7 +94,7 @@ private:
     Q_DISABLE_COPY_MOVE(QtAbstractPropertyManager)
 };
 
-class QtAbstractEditorFactoryBase : public QObject
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtAbstractEditorFactoryBase : public QObject
 {
     Q_OBJECT
 public:
@@ -183,7 +188,7 @@ private:
 class QtAbstractPropertyBrowser;
 class QtBrowserItemPrivate;
 
-class QtBrowserItem
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtBrowserItem
 {
 public:
     QtProperty *property() const;
@@ -199,7 +204,7 @@ private:
 
 class QtAbstractPropertyBrowserPrivate;
 
-class QtAbstractPropertyBrowser : public QWidget
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtAbstractPropertyBrowser : public QWidget
 {
     Q_OBJECT
 public:

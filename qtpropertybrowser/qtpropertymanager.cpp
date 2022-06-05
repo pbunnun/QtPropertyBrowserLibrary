@@ -350,27 +350,45 @@ public:
 
     QStringList policyEnumNames() const { return m_policyEnumNames; }
     QStringList languageEnumNames() const { return m_languageEnumNames; }
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) )
     QStringList territoryEnumNames(QLocale::Language language) const { return m_territoryEnumNames.value(language); }
+#else
+    QStringList countryEnumNames(QLocale::Language language) const { return m_countryEnumNames.value(language); }
+#endif
 
     QSizePolicy::Policy indexToSizePolicy(int index) const;
     int sizePolicyToIndex(QSizePolicy::Policy policy) const;
-
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) )
     void indexToLocale(int languageIndex, int territoryIndex, QLocale::Language *language, QLocale::Territory *territory) const;
     void localeToIndex(QLocale::Language language, QLocale::Territory territory, int *languageIndex, int *territoryIndex) const;
+#else
+    void indexToLocale(int languageIndex, int countryIndex, QLocale::Language *language, QLocale::Country *country) const;
+    void localeToIndex(QLocale::Language language, QLocale::Country country, int *languageIndex, int *countryIndex) const;
+#endif
 
 private:
     void initLocale();
 
     QStringList m_policyEnumNames;
     QStringList m_languageEnumNames;
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) )
     QMap<QLocale::Language, QStringList> m_territoryEnumNames;
+#else
+    QMap<QLocale::Language, QStringList> m_countryEnumNames;
+#endif
     QMap<int, QLocale::Language> m_indexToLanguage;
     QMap<QLocale::Language, int> m_languageToIndex;
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) )
     QMap<int, QMap<int, QLocale::Territory> > m_indexToTerritory;
     QMap<QLocale::Language, QMap<QLocale::Territory, int> > m_territoryToIndex;
+#else
+    QMap<int, QMap<int, QLocale::Country> > m_indexToCountry;
+    QMap<QLocale::Language, QMap<QLocale::Country, int> > m_countryToIndex;
+#endif
     QMetaEnum m_policyEnum;
 };
 
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) )
 static QList<QLocale::Territory> sortTerritories(const QList<QLocale::Territory> &territories)
 {
     QMultiMap<QString, QLocale::Territory> nameToTerritory;
@@ -378,6 +396,15 @@ static QList<QLocale::Territory> sortTerritories(const QList<QLocale::Territory>
         nameToTerritory.insert(QLocale::territoryToString(territory), territory);
     return nameToTerritory.values();
 }
+#else
+static QList<QLocale::Country> sortCountries(const QList<QLocale::Country> &countries)
+{
+    QMultiMap<QString, QLocale::Country> nameToCountry;
+    for (QLocale::Country country : countries)
+        nameToCountry.insert(QLocale::countryToString(country), country);
+    return nameToCountry.values();
+}
+#endif
 
 void QtMetaEnumProvider::initLocale()
 {
@@ -395,6 +422,7 @@ void QtMetaEnumProvider::initLocale()
 
     const auto languages = nameToLanguage.values();
     for (QLocale::Language language : languages) {
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) )
         const auto localesForLanguage = QLocale::matchingLocales(language, QLocale::AnyScript, QLocale::AnyTerritory);
         QList<QLocale::Territory> territories;
         territories.reserve(localesForLanguage.size());
@@ -418,7 +446,29 @@ void QtMetaEnumProvider::initLocale()
             }
             m_languageEnumNames << QLocale::languageToString(language);
             m_territoryEnumNames[language] = territoryNames;
+#else
+        QList<QLocale::Country> countries;
+        countries = QLocale::countriesForLanguage(language);
+        if (countries.isEmpty() && language == system.language())
+            countries << system.country();
+
+        if (!countries.isEmpty() && !m_languageToIndex.contains(language)) {
+            countries = sortCountries(countries);
+            int langIdx = m_languageEnumNames.count();
+            m_indexToLanguage[langIdx] = language;
+            m_languageToIndex[language] = langIdx;
+            QStringList countryNames;
+            int countryIdx = 0;
+            for (QLocale::Country country : qAsConst(countries)) {
+                countryNames << QLocale::countryToString(country);
+                m_indexToCountry[langIdx][countryIdx] = country;
+                m_countryToIndex[language][country] = countryIdx;
+                ++countryIdx;
+            }
+            m_languageEnumNames << QLocale::languageToString(language);
+            m_countryEnumNames[language] = countryNames;
         }
+#endif
     }
 }
 
@@ -450,6 +500,7 @@ int QtMetaEnumProvider::sizePolicyToIndex(QSizePolicy::Policy policy) const
     return -1;
 }
 
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) )
 void QtMetaEnumProvider::indexToLocale(int languageIndex, int territoryIndex, QLocale::Language *language, QLocale::Territory *territory) const
 {
     QLocale::Language l = QLocale::C;
@@ -480,8 +531,214 @@ void QtMetaEnumProvider::localeToIndex(QLocale::Language language, QLocale::Terr
     if (territoryIndex)
         *territoryIndex = c;
 }
+#else
+void QtMetaEnumProvider::indexToLocale(int languageIndex, int countryIndex, QLocale::Language *language, QLocale::Country *country) const
+{
+    QLocale::Language l = QLocale::C;
+    QLocale::Country c = QLocale::AnyCountry;
+    if (m_indexToLanguage.contains(languageIndex)) {
+        l = m_indexToLanguage[languageIndex];
+        if (m_indexToCountry.contains(languageIndex) && m_indexToCountry[languageIndex].contains(countryIndex))
+            c = m_indexToCountry[languageIndex][countryIndex];
+    }
+    if (language)
+        *language = l;
+    if (country)
+        *country = c;
+}
+
+void QtMetaEnumProvider::localeToIndex(QLocale::Language language, QLocale::Country country, int *languageIndex, int *countryIndex) const
+{
+    int l = -1;
+    int c = -1;
+    if (m_languageToIndex.contains(language)) {
+        l = m_languageToIndex[language];
+        if (m_countryToIndex.contains(language) && m_countryToIndex[language].contains(country))
+            c = m_countryToIndex[language][country];
+    }
+
+    if (languageIndex)
+        *languageIndex = l;
+    if (countryIndex)
+        *countryIndex = c;
+}
+#endif
 
 Q_GLOBAL_STATIC(QtMetaEnumProvider, metaEnumProvider)
+
+// QtFilePathPropertyManager
+class QtFilePathPropertyManagerPrivate
+{
+    QtFilePathPropertyManager *q_ptr;
+    Q_DECLARE_PUBLIC(QtFilePathPropertyManager)
+public:
+    struct Data
+    {
+        QString value;
+        QString filter;
+        QString mode;
+    };
+
+    typedef QMap<const QtProperty *, Data> PropertyValueMap;
+    PropertyValueMap m_values;
+};
+
+QtFilePathPropertyManager::QtFilePathPropertyManager(QObject *parent )
+    : QtAbstractPropertyManager(parent), d_ptr(new QtFilePathPropertyManagerPrivate)
+{
+    d_ptr->q_ptr = this;
+}
+
+QtFilePathPropertyManager::~QtFilePathPropertyManager()
+{
+    clear();
+}
+
+QString QtFilePathPropertyManager::valueText(const QtProperty *property) const
+{ 
+    return value(property); 
+}
+
+void QtFilePathPropertyManager::initializeProperty(QtProperty *property) 
+{
+    d_ptr->m_values[property] = QtFilePathPropertyManagerPrivate::Data();
+}
+
+void QtFilePathPropertyManager::uninitializeProperty(QtProperty *property) 
+{
+    d_ptr->m_values.remove(property);
+}
+
+QString QtFilePathPropertyManager::value(const QtProperty *property) const
+{
+    return getData<QString>(d_ptr->m_values, &QtFilePathPropertyManagerPrivate::Data::value, property);
+}
+
+QString QtFilePathPropertyManager::filter(const QtProperty *property) const
+{
+    return getData<QString>(d_ptr->m_values, &QtFilePathPropertyManagerPrivate::Data::filter, property);
+}
+
+QString QtFilePathPropertyManager::mode(const QtProperty *property) const
+{
+    return getData<QString>(d_ptr->m_values, &QtFilePathPropertyManagerPrivate::Data::mode, property);
+}
+
+void QtFilePathPropertyManager::setValue(QtProperty *property, const QString &val)
+{
+    const QtFilePathPropertyManagerPrivate::PropertyValueMap::iterator it = d_ptr->m_values.find(property);
+    if ( it == d_ptr->m_values.end() )
+        return;
+
+    QtFilePathPropertyManagerPrivate::Data data = it.value();
+
+    if (data.value == val)
+        return;
+
+    data.value = val;
+    it.value() = data;
+
+    emit propertyChanged(property);
+    emit valueChanged(property, data.value);
+}
+
+void QtFilePathPropertyManager::setFilter(QtProperty *property, const QString &fil)
+{
+    const QtFilePathPropertyManagerPrivate::PropertyValueMap::iterator it = d_ptr->m_values.find(property);
+    if ( it == d_ptr->m_values.end() )
+        return;
+
+    QtFilePathPropertyManagerPrivate::Data data = it.value();
+
+    if (data.filter == fil)
+        return;
+
+    data.filter = fil;
+    it.value() = data;
+
+    emit filterChanged(property, data.filter);
+}
+
+void QtFilePathPropertyManager::setMode(QtProperty *property, const QString &mode)
+{
+    const QtFilePathPropertyManagerPrivate::PropertyValueMap::iterator it = d_ptr->m_values.find(property);
+    if ( it == d_ptr->m_values.end() )
+        return;
+
+    QtFilePathPropertyManagerPrivate::Data data = it.value();
+
+    if (data.mode == mode)
+        return;
+
+    data.mode = mode;
+    it.value() = data;
+
+    emit modeChanged(property, data.mode);
+}
+
+// QtPathPropertyManager
+class QtPathPropertyManagerPrivate
+{
+    QtPathPropertyManager *q_ptr;
+    Q_DECLARE_PUBLIC(QtPathPropertyManager)
+public:
+    struct Data
+    {
+        QString value;
+    };
+
+    typedef QMap<const QtProperty *, Data> PropertyValueMap;
+    PropertyValueMap m_values;
+};
+
+QtPathPropertyManager::QtPathPropertyManager(QObject *parent )
+    : QtAbstractPropertyManager(parent), d_ptr(new QtPathPropertyManagerPrivate)
+{
+    d_ptr->q_ptr = this;
+}
+
+QtPathPropertyManager::~QtPathPropertyManager()
+{
+    clear();
+}
+
+QString QtPathPropertyManager::valueText(const QtProperty *property) const
+{
+    return value(property);
+}
+
+void QtPathPropertyManager::initializeProperty(QtProperty *property)
+{
+    d_ptr->m_values[property] = QtPathPropertyManagerPrivate::Data();
+}
+
+void QtPathPropertyManager::uninitializeProperty(QtProperty *property)
+{
+    d_ptr->m_values.remove(property);
+}
+
+QString QtPathPropertyManager::value(const QtProperty *property) const
+{
+    return getData<QString>(d_ptr->m_values, &QtPathPropertyManagerPrivate::Data::value, property);
+}
+
+void QtPathPropertyManager::setValue(QtProperty *property, const QString &val)
+{
+    const QtPathPropertyManagerPrivate::PropertyValueMap::iterator it = d_ptr->m_values.find(property);
+    if ( it == d_ptr->m_values.end() )
+        return;
+
+    QtPathPropertyManagerPrivate::Data data = it.value();
+
+    if (data.value == val)
+        return;
+
+    data.value = val;
+    it.value() = data;
+
+    emit propertyChanged(property);
+    emit valueChanged(property, data.value);
+}
 
 // QtGroupPropertyManager
 
@@ -554,6 +811,7 @@ public:
         int minVal{-INT_MAX};
         int maxVal{INT_MAX};
         int singleStep{1};
+        bool readOnly{false};
         int minimumValue() const { return minVal; }
         int maximumValue() const { return maxVal; }
         void setMinimumValue(int newMinVal) { setSimpleMinimumData(this, newMinVal); }
@@ -682,6 +940,18 @@ int QtIntPropertyManager::singleStep(const QtProperty *property) const
 }
 
 /*!
+    Returns read-only status of the property.
+
+    When property is read-only it's value can be selected and copied from editor but not modified.
+
+    \sa QtIntPropertyManager::setReadOnly
+*/
+bool QtIntPropertyManager::isReadOnly(const QtProperty *property) const
+{
+    return getData<bool>(d_ptr->m_values, &QtIntPropertyManagerPrivate::Data::readOnly, property, false);
+}
+
+/*!
     \reimp
 */
 QString QtIntPropertyManager::valueText(const QtProperty *property) const
@@ -801,6 +1071,29 @@ void QtIntPropertyManager::setSingleStep(QtProperty *property, int step)
 }
 
 /*!
+    Sets read-only status of the property.
+
+    \sa QtIntPropertyManager::setReadOnly
+*/
+void QtIntPropertyManager::setReadOnly(QtProperty *property, bool readOnly)
+{
+    const QtIntPropertyManagerPrivate::PropertyValueMap::iterator it = d_ptr->m_values.find(property);
+    if (it == d_ptr->m_values.end())
+        return;
+
+    QtIntPropertyManagerPrivate::Data data = it.value();
+
+    if (data.readOnly == readOnly)
+        return;
+
+    data.readOnly = readOnly;
+    it.value() = data;
+
+    emit propertyChanged(property);
+    emit readOnlyChanged(property, data.readOnly);
+}
+
+/*!
     \reimp
 */
 void QtIntPropertyManager::initializeProperty(QtProperty *property)
@@ -831,6 +1124,7 @@ public:
         double maxVal{DBL_MAX};
         double singleStep{1};
         int decimals{2};
+        bool readOnly{false};
         double minimumValue() const { return minVal; }
         double maximumValue() const { return maxVal; }
         void setMinimumValue(double newMinVal) { setSimpleMinimumData(this, newMinVal); }
@@ -980,6 +1274,18 @@ int QtDoublePropertyManager::decimals(const QtProperty *property) const
 }
 
 /*!
+    Returns read-only status of the property.
+
+    When property is read-only it's value can be selected and copied from editor but not modified.
+
+    \sa QtDoublePropertyManager::setReadOnly
+*/
+bool QtDoublePropertyManager::isReadOnly(const QtProperty *property) const
+{
+    return getData<bool>(d_ptr->m_values, &QtDoublePropertyManagerPrivate::Data::readOnly, property, false);
+}
+
+/*!
     \reimp
 */
 QString QtDoublePropertyManager::valueText(const QtProperty *property) const
@@ -1036,6 +1342,29 @@ void QtDoublePropertyManager::setSingleStep(QtProperty *property, double step)
     it.value() = data;
 
     emit singleStepChanged(property, data.singleStep);
+}
+
+/*!
+    Sets read-only status of the property.
+
+    \sa QtDoublePropertyManager::setReadOnly
+*/
+void QtDoublePropertyManager::setReadOnly(QtProperty *property, bool readOnly)
+{
+    const QtDoublePropertyManagerPrivate::PropertyValueMap::iterator it = d_ptr->m_values.find(property);
+    if (it == d_ptr->m_values.end())
+        return;
+
+    QtDoublePropertyManagerPrivate::Data data = it.value();
+
+    if (data.readOnly == readOnly)
+        return;
+
+    data.readOnly = readOnly;
+    it.value() = data;
+
+    emit propertyChanged(property);
+    emit readOnlyChanged(property, data.readOnly);
 }
 
 /*!
@@ -1158,6 +1487,8 @@ public:
     {
         QString val;
         QRegularExpression regExp;
+        int echoMode{QLineEdit::Normal};
+        bool readOnly{false};
     };
 
     typedef QMap<const QtProperty *, Data> PropertyValueMap;
@@ -1253,12 +1584,47 @@ QRegularExpression QtStringPropertyManager::regExp(const QtProperty *property) c
 /*!
     \reimp
 */
+EchoMode QtStringPropertyManager::echoMode(const QtProperty *property) const
+{
+    return (EchoMode)getData<int>(d_ptr->m_values, &QtStringPropertyManagerPrivate::Data::echoMode, property, 0);
+}
+
+/*!
+    Returns read-only status of the property.
+
+    When property is read-only it's value can be selected and copied from editor but not modified.
+
+    \sa QtStringPropertyManager::setReadOnly
+*/
+bool QtStringPropertyManager::isReadOnly(const QtProperty *property) const
+{
+    return getData<bool>(d_ptr->m_values, &QtStringPropertyManagerPrivate::Data::readOnly, property, false);
+}
+
+/*!
+    \reimp
+*/
 QString QtStringPropertyManager::valueText(const QtProperty *property) const
 {
     const QtStringPropertyManagerPrivate::PropertyValueMap::const_iterator it = d_ptr->m_values.constFind(property);
     if (it == d_ptr->m_values.constEnd())
         return QString();
     return it.value().val;
+}
+
+/*!
+    \reimp
+*/
+QString QtStringPropertyManager::displayText(const QtProperty *property) const
+{
+    const QtStringPropertyManagerPrivate::PropertyValueMap::const_iterator it = d_ptr->m_values.constFind(property);
+    if (it == d_ptr->m_values.constEnd())
+        return QString();
+
+    QLineEdit edit;
+    edit.setEchoMode((EchoMode)it.value().echoMode);
+    edit.setText(it.value().val);
+    return edit.displayText();
 }
 
 /*!
@@ -1318,6 +1684,47 @@ void QtStringPropertyManager::setRegExp(QtProperty *property, const QRegularExpr
     emit regExpChanged(property, data.regExp);
 }
 
+void QtStringPropertyManager::setEchoMode(QtProperty *property, EchoMode echoMode)
+{
+    const QtStringPropertyManagerPrivate::PropertyValueMap::iterator it = d_ptr->m_values.find(property);
+    if (it == d_ptr->m_values.end())
+        return;
+
+    QtStringPropertyManagerPrivate::Data data = it.value();
+
+    if (data.echoMode == echoMode)
+        return;
+
+    data.echoMode = echoMode;
+    it.value() = data;
+
+    emit propertyChanged(property);
+    emit echoModeChanged(property, data.echoMode);
+}
+
+/*!
+    Sets read-only status of the property.
+
+    \sa QtStringPropertyManager::setReadOnly
+*/
+void QtStringPropertyManager::setReadOnly(QtProperty *property, bool readOnly)
+{
+    const QtStringPropertyManagerPrivate::PropertyValueMap::iterator it = d_ptr->m_values.find(property);
+    if (it == d_ptr->m_values.end())
+        return;
+
+    QtStringPropertyManagerPrivate::Data data = it.value();
+
+    if (data.readOnly == readOnly)
+        return;
+
+    data.readOnly = readOnly;
+    it.value() = data;
+
+    emit propertyChanged(property);
+    emit readOnlyChanged(property, data.readOnly);
+}
+
 /*!
     \reimp
 */
@@ -1372,7 +1779,15 @@ class QtBoolPropertyManagerPrivate
 public:
     QtBoolPropertyManagerPrivate();
 
-    QMap<const QtProperty *, bool> m_values;
+    struct Data
+    {
+        bool val{false};
+        bool textVisible{true};
+        bool readOnly{false};
+    };
+
+    typedef QMap<const QtProperty *, Data> PropertyValueMap;
+    PropertyValueMap m_values;
     const QIcon m_checkedIcon;
     const QIcon m_uncheckedIcon;
 };
@@ -1436,7 +1851,12 @@ QtBoolPropertyManager::~QtBoolPropertyManager()
 */
 bool QtBoolPropertyManager::value(const QtProperty *property) const
 {
-    return d_ptr->m_values.value(property, false);
+    return getValue<bool>(d_ptr->m_values, property, false);
+}
+
+bool QtBoolPropertyManager::textVisible(const QtProperty *property) const
+{
+    return getData<bool>(d_ptr->m_values, &QtBoolPropertyManagerPrivate::Data::textVisible, property, false);
 }
 
 /*!
@@ -1444,13 +1864,17 @@ bool QtBoolPropertyManager::value(const QtProperty *property) const
 */
 QString QtBoolPropertyManager::valueText(const QtProperty *property) const
 {
-    const QMap<const QtProperty *, bool>::const_iterator it = d_ptr->m_values.constFind(property);
+    const QtBoolPropertyManagerPrivate::PropertyValueMap::const_iterator it = d_ptr->m_values.constFind(property);
     if (it == d_ptr->m_values.constEnd())
+        return QString();
+
+    const QtBoolPropertyManagerPrivate::Data &data = it.value();
+    if (!data.textVisible)
         return QString();
 
     static const QString trueText = tr("True");
     static const QString falseText = tr("False");
-    return it.value() ? trueText : falseText;
+    return data.val ? trueText : falseText;
 }
 
 /*!
@@ -1458,11 +1882,16 @@ QString QtBoolPropertyManager::valueText(const QtProperty *property) const
 */
 QIcon QtBoolPropertyManager::valueIcon(const QtProperty *property) const
 {
-    const QMap<const QtProperty *, bool>::const_iterator it = d_ptr->m_values.constFind(property);
+    const QtBoolPropertyManagerPrivate::PropertyValueMap::const_iterator it = d_ptr->m_values.constFind(property);
     if (it == d_ptr->m_values.constEnd())
         return QIcon();
 
-    return it.value() ? d_ptr->m_checkedIcon : d_ptr->m_uncheckedIcon;
+    return it.value().val ? d_ptr->m_checkedIcon : d_ptr->m_uncheckedIcon;
+}
+
+bool QtBoolPropertyManager::isReadOnly(const QtProperty *property) const
+{
+    return getData<bool>(d_ptr->m_values, &QtBoolPropertyManagerPrivate::Data::readOnly, property, false);
 }
 
 /*!
@@ -1474,18 +1903,63 @@ QIcon QtBoolPropertyManager::valueIcon(const QtProperty *property) const
 */
 void QtBoolPropertyManager::setValue(QtProperty *property, bool val)
 {
-    setSimpleValue<bool, bool, QtBoolPropertyManager>(d_ptr->m_values, this,
-                &QtBoolPropertyManager::propertyChanged,
-                &QtBoolPropertyManager::valueChanged,
-                property, val);
+    const QtBoolPropertyManagerPrivate::PropertyValueMap::iterator it = d_ptr->m_values.find(property);
+    if (it == d_ptr->m_values.end())
+        return;
+
+    QtBoolPropertyManagerPrivate::Data data = it.value();
+
+    if (data.val == val)
+        return;
+
+    data.val = val;
+    it.value() = data;
+
+    emit propertyChanged(property);
+    emit valueChanged(property, data.val);
 }
 
+void QtBoolPropertyManager::setTextVisible(QtProperty *property, bool textVisible)
+{
+    const QtBoolPropertyManagerPrivate::PropertyValueMap::iterator it = d_ptr->m_values.find(property);
+    if (it == d_ptr->m_values.end())
+        return;
+
+    QtBoolPropertyManagerPrivate::Data data = it.value();
+
+    if (data.textVisible == textVisible)
+        return;
+
+    data.textVisible = textVisible;
+    it.value() = data;
+
+    emit propertyChanged(property);
+    emit textVisibleChanged(property, data.textVisible);
+}
+
+void QtBoolPropertyManager::setReadOnly(QtProperty *property, bool readOnly)
+{
+    const QtBoolPropertyManagerPrivate::PropertyValueMap::iterator it = d_ptr->m_values.find(property);
+    if( it == d_ptr->m_values.end() )
+        return;
+
+    QtBoolPropertyManagerPrivate::Data data = it.value();
+
+    if( data.readOnly == readOnly )
+        return;
+
+    data.readOnly = readOnly;
+    it.value() = data;
+
+    emit propertyChanged(property);
+    emit readOnlyChanged(property, data.readOnly);
+}
 /*!
     \reimp
 */
 void QtBoolPropertyManager::initializeProperty(QtProperty *property)
 {
-    d_ptr->m_values[property] = false;
+    d_ptr->m_values[property] = QtBoolPropertyManagerPrivate::Data();
 }
 
 /*!
@@ -2204,11 +2678,19 @@ public:
 
     QtEnumPropertyManager *m_enumPropertyManager;
 
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) )
     QMap<const QtProperty *, QtProperty *> m_propertyToLanguage;
     QMap<const QtProperty *, QtProperty *> m_propertyToTerritory;
 
     QMap<const QtProperty *, QtProperty *> m_languageToProperty;
     QMap<const QtProperty *, QtProperty *> m_territoryToProperty;
+#else
+    QMap<const QtProperty *, QtProperty *> m_propertyToLanguage;
+    QMap<const QtProperty *, QtProperty *> m_propertyToCountry;
+
+    QMap<const QtProperty *, QtProperty *> m_languageToProperty;
+    QMap<const QtProperty *, QtProperty *> m_countryToProperty;
+#endif
 };
 
 QtLocalePropertyManagerPrivate::QtLocalePropertyManagerPrivate()
@@ -2217,6 +2699,7 @@ QtLocalePropertyManagerPrivate::QtLocalePropertyManagerPrivate()
 
 void QtLocalePropertyManagerPrivate::slotEnumChanged(QtProperty *property, int value)
 {
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) )
     if (QtProperty *prop = m_languageToProperty.value(property, 0)) {
         const QLocale loc = m_values[prop];
         QLocale::Language newLanguage = loc.language();
@@ -2232,6 +2715,23 @@ void QtLocalePropertyManagerPrivate::slotEnumChanged(QtProperty *property, int v
         QLocale newLoc(newLanguage, newTerritory);
         q_ptr->setValue(prop, newLoc);
     }
+#else
+    if (QtProperty *prop = m_languageToProperty.value(property, 0)) {
+        const QLocale loc = m_values[prop];
+        QLocale::Language newLanguage = loc.language();
+        QLocale::Country newCountry = loc.country();
+        metaEnumProvider()->indexToLocale(value, 0, &newLanguage, 0);
+        QLocale newLoc(newLanguage, newCountry);
+        q_ptr->setValue(prop, newLoc);
+    } else if (QtProperty *prop = m_countryToProperty.value(property, 0)) {
+        const QLocale loc = m_values[prop];
+        QLocale::Language newLanguage = loc.language();
+        QLocale::Country newCountry = loc.country();
+        metaEnumProvider()->indexToLocale(m_enumPropertyManager->value(m_propertyToLanguage.value(prop)), value, &newLanguage, &newCountry);
+        QLocale newLoc(newLanguage, newCountry);
+        q_ptr->setValue(prop, newLoc);
+    }
+#endif
 }
 
 void QtLocalePropertyManagerPrivate::slotPropertyDestroyed(QtProperty *property)
@@ -2239,9 +2739,15 @@ void QtLocalePropertyManagerPrivate::slotPropertyDestroyed(QtProperty *property)
     if (QtProperty *subProp = m_languageToProperty.value(property, 0)) {
         m_propertyToLanguage[subProp] = 0;
         m_languageToProperty.remove(property);
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) )
     } else if (QtProperty *subProp = m_territoryToProperty.value(property, 0)) {
         m_propertyToTerritory[subProp] = 0;
         m_territoryToProperty.remove(property);
+#else
+    } else if (QtProperty *subProp = m_countryToProperty.value(property, 0)) {
+        m_propertyToCountry[subProp] = 0;
+        m_countryToProperty.remove(property);
+#endif
     }
 }
 
@@ -2343,6 +2849,7 @@ QString QtLocalePropertyManager::valueText(const QtProperty *property) const
     const QLocale loc = it.value();
 
     int langIdx = 0;
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) )
     int territoryIdx = 0;
     const QtMetaEnumProvider *me = metaEnumProvider();
     me->localeToIndex(loc.language(), loc.territory(), &langIdx, &territoryIdx);
@@ -2356,6 +2863,21 @@ QString QtLocalePropertyManager::valueText(const QtProperty *property) const
         return languageName;
     }
     const QString countryName = me->territoryEnumNames(loc.language()).at(territoryIdx);
+#else
+    int countryIdx = 0;
+    const QtMetaEnumProvider *me = metaEnumProvider();
+    me->localeToIndex(loc.language(), loc.country(), &langIdx, &countryIdx);
+    if (langIdx < 0) {
+        qWarning("QtLocalePropertyManager::valueText: Unknown language %d", loc.language());
+        return tr("<Invalid>");
+    }
+    const QString languageName = me->languageEnumNames().at(langIdx);
+    if (countryIdx < 0) {
+        qWarning("QtLocalePropertyManager::valueText: Unknown country %d for %s", loc.country(), qPrintable(languageName));
+        return languageName;
+    }
+    const QString countryName = me->countryEnumNames(loc.language()).at(countryIdx);
+#endif
     return tr("%1, %2").arg(languageName, countryName);
 }
 
@@ -2380,6 +2902,7 @@ void QtLocalePropertyManager::setValue(QtProperty *property, const QLocale &val)
     it.value() = val;
 
     int langIdx = 0;
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) )
     int territoryIdx = 0;
     metaEnumProvider()->localeToIndex(val.language(), val.territory(), &langIdx, &territoryIdx);
     if (loc.language() != val.language()) {
@@ -2388,7 +2911,16 @@ void QtLocalePropertyManager::setValue(QtProperty *property, const QLocale &val)
                     metaEnumProvider()->territoryEnumNames(val.language()));
     }
     d_ptr->m_enumPropertyManager->setValue(d_ptr->m_propertyToTerritory.value(property), territoryIdx);
-
+#else
+    int countryIdx = 0;
+    metaEnumProvider()->localeToIndex(val.language(), val.country(), &langIdx, &countryIdx);
+    if (loc.language() != val.language()) {
+        d_ptr->m_enumPropertyManager->setValue(d_ptr->m_propertyToLanguage.value(property), langIdx);
+        d_ptr->m_enumPropertyManager->setEnumNames(d_ptr->m_propertyToCountry.value(property),
+                    metaEnumProvider()->countryEnumNames(val.language()));
+    }
+    d_ptr->m_enumPropertyManager->setValue(d_ptr->m_propertyToCountry.value(property), countryIdx);
+#endif
     emit propertyChanged(property);
     emit valueChanged(property, val);
 }
@@ -2402,9 +2934,13 @@ void QtLocalePropertyManager::initializeProperty(QtProperty *property)
     d_ptr->m_values[property] = val;
 
     int langIdx = 0;
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) )
     int territoryIdx = 0;
     metaEnumProvider()->localeToIndex(val.language(), val.territory(), &langIdx, &territoryIdx);
-
+#else
+    int countryIdx = 0;
+    metaEnumProvider()->localeToIndex(val.language(), val.country(), &langIdx, &countryIdx);
+#endif
     QtProperty *languageProp = d_ptr->m_enumPropertyManager->addProperty();
     languageProp->setPropertyName(tr("Language"));
     d_ptr->m_enumPropertyManager->setEnumNames(languageProp, metaEnumProvider()->languageEnumNames());
@@ -2413,6 +2949,7 @@ void QtLocalePropertyManager::initializeProperty(QtProperty *property)
     d_ptr->m_languageToProperty[languageProp] = property;
     property->addSubProperty(languageProp);
 
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) )
     QtProperty *territoryProp = d_ptr->m_enumPropertyManager->addProperty();
     territoryProp->setPropertyName(tr("Country"));
     d_ptr->m_enumPropertyManager->setEnumNames(territoryProp, metaEnumProvider()->territoryEnumNames(val.language()));
@@ -2420,6 +2957,15 @@ void QtLocalePropertyManager::initializeProperty(QtProperty *property)
     d_ptr->m_propertyToTerritory[property] = territoryProp;
     d_ptr->m_territoryToProperty[territoryProp] = property;
     property->addSubProperty(territoryProp);
+#else
+    QtProperty *countryProp = d_ptr->m_enumPropertyManager->addProperty();
+    countryProp->setPropertyName(tr("Country"));
+    d_ptr->m_enumPropertyManager->setEnumNames(countryProp, metaEnumProvider()->countryEnumNames(val.language()));
+    d_ptr->m_enumPropertyManager->setValue(countryProp, countryIdx);
+    d_ptr->m_propertyToCountry[property] = countryProp;
+    d_ptr->m_countryToProperty[countryProp] = property;
+    property->addSubProperty(countryProp);
+#endif
 }
 
 /*!
@@ -2434,13 +2980,21 @@ void QtLocalePropertyManager::uninitializeProperty(QtProperty *property)
     }
     d_ptr->m_propertyToLanguage.remove(property);
 
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) )
     QtProperty *countryProp = d_ptr->m_propertyToTerritory[property];
     if (countryProp) {
         d_ptr->m_territoryToProperty.remove(countryProp);
         delete countryProp;
     }
     d_ptr->m_propertyToTerritory.remove(property);
-
+#else
+    QtProperty *countryProp = d_ptr->m_propertyToCountry[property];
+    if (countryProp) {
+        d_ptr->m_countryToProperty.remove(countryProp);
+        delete countryProp;
+    }
+    d_ptr->m_propertyToCountry.remove(property);
+#endif
     d_ptr->m_values.remove(property);
 }
 
@@ -2952,6 +3506,7 @@ public:
         QSize val{0, 0};
         QSize minVal{0, 0};
         QSize maxVal{INT_MAX, INT_MAX};
+        bool readOnly{false};
         QSize minimumValue() const { return minVal; }
         QSize maximumValue() const { return maxVal; }
         void setMinimumValue(const QSize &newMinVal) { setSizeMinimumData(this, newMinVal); }
@@ -3135,6 +3690,18 @@ QSize QtSizePropertyManager::maximum(const QtProperty *property) const
 }
 
 /*!
+    Returns read-only status of the property.
+
+    When property is read-only it's value can be selected and copied from editor but not modified.
+
+    \sa QtIntPropertyManager::setReadOnly
+*/
+bool QtSizePropertyManager::isReadOnly(const QtProperty *property) const
+{
+    return getData<bool>(d_ptr->m_values, &QtSizePropertyManagerPrivate::Data::readOnly, property, false);
+}
+
+/*!
     \reimp
 */
 QString QtSizePropertyManager::valueText(const QtProperty *property) const
@@ -3232,6 +3799,32 @@ void QtSizePropertyManager::setRange(QtProperty *property, const QSize &minVal, 
 }
 
 /*!
+    Sets read-only status of the property.
+
+    \sa QtSizePropertyManager::setReadOnly
+*/
+void QtSizePropertyManager::setReadOnly(QtProperty *property, bool readOnly)
+{
+    const QtSizePropertyManagerPrivate::PropertyValueMap::iterator it = d_ptr->m_values.find(property);
+    if (it == d_ptr->m_values.end())
+        return;
+
+    QtSizePropertyManagerPrivate::Data data = it.value();
+
+    if (data.readOnly == readOnly)
+        return;
+
+    data.readOnly = readOnly;
+    it.value() = data;
+
+    emit propertyChanged(property);
+    emit readOnlyChanged(property, data.readOnly);
+
+    d_ptr->m_intPropertyManager->setReadOnly(d_ptr->m_propertyToH[property], readOnly);
+    d_ptr->m_intPropertyManager->setReadOnly(d_ptr->m_propertyToW[property], readOnly);
+}
+
+/*!
     \reimp
 */
 void QtSizePropertyManager::initializeProperty(QtProperty *property)
@@ -3297,6 +3890,7 @@ public:
         QSizeF minVal{0, 0};
         QSizeF maxVal{std::numeric_limits<qreal>::max(), std::numeric_limits<qreal>::max()};
         int decimals{2};
+        bool readOnly{false};
         QSizeF minimumValue() const { return minVal; }
         QSizeF maximumValue() const { return maxVal; }
         void setMinimumValue(const QSizeF &newMinVal) { setSizeMinimumData(this, newMinVal); }
@@ -3498,6 +4092,18 @@ QSizeF QtSizeFPropertyManager::maximum(const QtProperty *property) const
 }
 
 /*!
+    Returns read-only status of the property.
+
+    When property is read-only it's value can be selected and copied from editor but not modified.
+
+    \sa QtIntPropertyManager::setReadOnly
+*/
+bool QtSizeFPropertyManager::isReadOnly(const QtProperty *property) const
+{
+    return getData<bool>(d_ptr->m_values, &QtSizeFPropertyManagerPrivate::Data::readOnly, property, false);
+}
+
+/*!
     \reimp
 */
 QString QtSizeFPropertyManager::valueText(const QtProperty *property) const
@@ -3627,6 +4233,32 @@ void QtSizeFPropertyManager::setRange(QtProperty *property, const QSizeF &minVal
                 &QtSizeFPropertyManager::valueChanged,
                 &QtSizeFPropertyManager::rangeChanged,
                 property, minVal, maxVal, &QtSizeFPropertyManagerPrivate::setRange);
+}
+
+/*!
+    Sets read-only status of the property.
+
+    \sa QtSizeFPropertyManager::setReadOnly
+*/
+void QtSizeFPropertyManager::setReadOnly(QtProperty *property, bool readOnly)
+{
+    const QtSizeFPropertyManagerPrivate::PropertyValueMap::iterator it = d_ptr->m_values.find(property);
+    if (it == d_ptr->m_values.end())
+        return;
+
+    QtSizeFPropertyManagerPrivate::Data data = it.value();
+
+    if (data.readOnly == readOnly)
+        return;
+
+    data.readOnly = readOnly;
+    it.value() = data;
+
+    emit propertyChanged(property);
+    emit readOnlyChanged(property, data.readOnly);
+
+    d_ptr->m_doublePropertyManager->setReadOnly(d_ptr->m_propertyToH[property], readOnly);
+    d_ptr->m_doublePropertyManager->setReadOnly(d_ptr->m_propertyToW[property], readOnly);
 }
 
 /*!
@@ -5478,6 +6110,9 @@ void QtSizePolicyPropertyManager::uninitializeProperty(QtProperty *property)
 // using a timer with interval 0, which then causes the family
 // enumeration manager to re-set its strings and index values
 // for each property.
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0) )
+    Q_GLOBAL_STATIC(QFontDatabase, fontDatabase)
+#endif
 
 class QtFontPropertyManagerPrivate
 {
@@ -5621,7 +6256,11 @@ void QtFontPropertyManagerPrivate::slotFontDatabaseDelayedChange()
     typedef QMap<const QtProperty *, QtProperty *> PropertyPropertyMap;
     // rescan available font names
     const QStringList oldFamilies = m_familyNames;
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) )
     m_familyNames = QFontDatabase::families();
+#else
+    m_familyNames = fontDatabase->families();
+#endif
 
     // Adapt all existing properties
     if (!m_propertyToFamily.isEmpty()) {
@@ -5806,8 +6445,13 @@ void QtFontPropertyManager::setValue(QtProperty *property, const QFont &val)
         return;
 
     const QFont oldVal = it.value();
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) )
     if (oldVal == val && oldVal.resolveMask() == val.resolveMask())
         return;
+#else
+    if(oldVal == val && oldVal.resolve() == val.resolve()) // Might have a problem or warning in Qt 6.x
+        return;
+#endif
 
     it.value() = val;
 
@@ -5840,7 +6484,11 @@ void QtFontPropertyManager::initializeProperty(QtProperty *property)
     QtProperty *familyProp = d_ptr->m_enumPropertyManager->addProperty();
     familyProp->setPropertyName(tr("Family"));
     if (d_ptr->m_familyNames.isEmpty())
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) )
         d_ptr->m_familyNames = QFontDatabase::families();
+#else
+        d_ptr->m_familyNames = fontDatabase->families();
+#endif
     d_ptr->m_enumPropertyManager->setEnumNames(familyProp, d_ptr->m_familyNames);
     int idx = d_ptr->m_familyNames.indexOf(val.family());
     if (idx == -1)

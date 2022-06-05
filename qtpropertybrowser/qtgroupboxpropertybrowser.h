@@ -5,12 +5,13 @@
 #define QTGROUPBOXPROPERTYBROWSER_H
 
 #include "qtpropertybrowser.h"
+#include "QtPropertyBrowserLibrary.hpp"
 
 QT_BEGIN_NAMESPACE
 
 class QtGroupBoxPropertyBrowserPrivate;
 
-class QtGroupBoxPropertyBrowser : public QtAbstractPropertyBrowser
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtGroupBoxPropertyBrowser : public QtAbstractPropertyBrowser
 {
     Q_OBJECT
 public:

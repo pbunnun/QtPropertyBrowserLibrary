@@ -19,6 +19,7 @@
 #include <QtGui/QIcon>
 #include <QtWidgets/QWidget>
 #include <QtCore/QStringList>
+#include "QtPropertyBrowserLibrary.hpp"
 
 QT_BEGIN_NAMESPACE
 
@@ -26,7 +27,7 @@ class QMouseEvent;
 class QCheckBox;
 class QLineEdit;
 
-class QtCursorDatabase
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtCursorDatabase
 {
 public:
     QtCursorDatabase();
@@ -48,7 +49,7 @@ private:
     QMap<Qt::CursorShape, int> m_cursorShapeToValue;
 };
 
-class QtPropertyBrowserUtils
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtPropertyBrowserUtils
 {
 public:
     static QPixmap brushValuePixmap(const QBrush &b);
@@ -62,7 +63,7 @@ public:
     static QString dateTimeFormat();
 };
 
-class QtBoolEdit : public QWidget {
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtBoolEdit : public QWidget {
     Q_OBJECT
 public:
     QtBoolEdit(QWidget *parent = 0);

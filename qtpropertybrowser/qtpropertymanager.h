@@ -5,6 +5,7 @@
 #define QTPROPERTYMANAGER_H
 
 #include "qtpropertybrowser.h"
+#include "QtPropertyBrowserLibrary.hpp"
 
 QT_BEGIN_NAMESPACE
 
@@ -14,7 +15,63 @@ class QDateTime;
 class QLocale;
 class QRegularExpression;
 
-class QtGroupPropertyManager : public QtAbstractPropertyManager
+class QtFilePathPropertyManagerPrivate;
+
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtFilePathPropertyManager : public QtAbstractPropertyManager
+{
+    Q_OBJECT
+public:
+    QtFilePathPropertyManager(QObject *parent = 0);
+    ~QtFilePathPropertyManager();
+
+    QString value(const QtProperty *property) const;
+    QString filter(const QtProperty *property) const;
+    QString mode(const QtProperty *property) const;
+
+public Q_SLOTS:
+    void setValue(QtProperty *property, const QString &val);
+    void setFilter(QtProperty *property, const QString &fil);
+    void setMode(QtProperty *property, const QString &mode);
+Q_SIGNALS:
+    void valueChanged(QtProperty *property, const QString &val);
+    void filterChanged(QtProperty *property, const QString &fil);
+    void modeChanged(QtProperty *property, const QString &mode);
+protected:
+    QString valueText(const QtProperty *property) const override;
+    void initializeProperty(QtProperty *property) override;
+    void uninitializeProperty(QtProperty *property) override;
+private:
+    QScopedPointer<QtFilePathPropertyManagerPrivate> d_ptr;
+    Q_DECLARE_PRIVATE(QtFilePathPropertyManager)
+    Q_DISABLE_COPY_MOVE(QtFilePathPropertyManager)
+};
+
+class QtPathPropertyManagerPrivate;
+
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtPathPropertyManager : public QtAbstractPropertyManager
+{
+    Q_OBJECT
+public:
+    QtPathPropertyManager(QObject *parent = 0);
+    ~QtPathPropertyManager();
+
+    QString value(const QtProperty *property) const;
+
+public Q_SLOTS:
+    void setValue(QtProperty *property, const QString &val);
+Q_SIGNALS:
+    void valueChanged(QtProperty *property, const QString &val);
+protected:
+    QString valueText(const QtProperty *property) const override;
+    void initializeProperty(QtProperty *property) override;
+    void uninitializeProperty(QtProperty *property) override;
+private:
+    QScopedPointer<QtPathPropertyManagerPrivate> d_ptr;
+    Q_DECLARE_PRIVATE(QtPathPropertyManager)
+    Q_DISABLE_COPY_MOVE(QtPathPropertyManager)
+};
+
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtGroupPropertyManager : public QtAbstractPropertyManager
 {
     Q_OBJECT
 public:
@@ -30,7 +87,7 @@ protected:
 
 class QtIntPropertyManagerPrivate;
 
-class QtIntPropertyManager : public QtAbstractPropertyManager
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtIntPropertyManager : public QtAbstractPropertyManager
 {
     Q_OBJECT
 public:
@@ -41,6 +98,7 @@ public:
     int minimum(const QtProperty *property) const;
     int maximum(const QtProperty *property) const;
     int singleStep(const QtProperty *property) const;
+    bool isReadOnly(const QtProperty *property) const;
 
 public Q_SLOTS:
     void setValue(QtProperty *property, int val);
@@ -48,10 +106,12 @@ public Q_SLOTS:
     void setMaximum(QtProperty *property, int maxVal);
     void setRange(QtProperty *property, int minVal, int maxVal);
     void setSingleStep(QtProperty *property, int step);
+    void setReadOnly(QtProperty *property, bool readOnly);
 Q_SIGNALS:
     void valueChanged(QtProperty *property, int val);
     void rangeChanged(QtProperty *property, int minVal, int maxVal);
     void singleStepChanged(QtProperty *property, int step);
+    void readOnlyChanged(QtProperty *property, bool readOnly);
 protected:
     QString valueText(const QtProperty *property) const override;
     void initializeProperty(QtProperty *property) override;
@@ -64,7 +124,7 @@ private:
 
 class QtBoolPropertyManagerPrivate;
 
-class QtBoolPropertyManager : public QtAbstractPropertyManager
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtBoolPropertyManager : public QtAbstractPropertyManager
 {
     Q_OBJECT
 public:
@@ -72,11 +132,17 @@ public:
     ~QtBoolPropertyManager();
 
     bool value(const QtProperty *property) const;
+    bool textVisible(const QtProperty *property) const;
+    bool isReadOnly(const QtProperty *property) const;
 
 public Q_SLOTS:
     void setValue(QtProperty *property, bool val);
+    void setTextVisible(QtProperty *property, bool textVisible);
+    void setReadOnly(QtProperty * property, bool readOnly);
 Q_SIGNALS:
     void valueChanged(QtProperty *property, bool val);
+    void textVisibleChanged(QtProperty *property, bool);
+    void readOnlyChanged(QtProperty *property, bool);
 protected:
     QString valueText(const QtProperty *property) const override;
     QIcon valueIcon(const QtProperty *property) const override;
@@ -90,7 +156,7 @@ private:
 
 class QtDoublePropertyManagerPrivate;
 
-class QtDoublePropertyManager : public QtAbstractPropertyManager
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtDoublePropertyManager : public QtAbstractPropertyManager
 {
     Q_OBJECT
 public:
@@ -102,6 +168,7 @@ public:
     double maximum(const QtProperty *property) const;
     double singleStep(const QtProperty *property) const;
     int decimals(const QtProperty *property) const;
+    bool isReadOnly(const QtProperty *property) const;
 
 public Q_SLOTS:
     void setValue(QtProperty *property, double val);
@@ -110,11 +177,13 @@ public Q_SLOTS:
     void setRange(QtProperty *property, double minVal, double maxVal);
     void setSingleStep(QtProperty *property, double step);
     void setDecimals(QtProperty *property, int prec);
+    void setReadOnly(QtProperty *property, bool readOnly);
 Q_SIGNALS:
     void valueChanged(QtProperty *property, double val);
     void rangeChanged(QtProperty *property, double minVal, double maxVal);
     void singleStepChanged(QtProperty *property, double step);
     void decimalsChanged(QtProperty *property, int prec);
+    void readOnlyChanged(QtProperty *property, bool readOnly);
 protected:
     QString valueText(const QtProperty *property) const override;
     void initializeProperty(QtProperty *property) override;
@@ -127,7 +196,7 @@ private:
 
 class QtStringPropertyManagerPrivate;
 
-class QtStringPropertyManager : public QtAbstractPropertyManager
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtStringPropertyManager : public QtAbstractPropertyManager
 {
     Q_OBJECT
 public:
@@ -136,15 +205,22 @@ public:
 
     QString value(const QtProperty *property) const;
     QRegularExpression regExp(const QtProperty *property) const;
+    EchoMode echoMode(const QtProperty *property) const;
+    bool isReadOnly(const QtProperty *property) const;
 
 public Q_SLOTS:
     void setValue(QtProperty *property, const QString &val);
     void setRegExp(QtProperty *property, const QRegularExpression &regExp);
+    void setEchoMode(QtProperty *property, EchoMode echoMode);
+    void setReadOnly(QtProperty *property, bool readOnly);
 Q_SIGNALS:
     void valueChanged(QtProperty *property, const QString &val);
     void regExpChanged(QtProperty *property, const QRegularExpression &regExp);
+    void echoModeChanged(QtProperty *property, const int);
+    void readOnlyChanged(QtProperty *property, bool);
 protected:
     QString valueText(const QtProperty *property) const override;
+    QString displayText(const QtProperty *property) const;
     void initializeProperty(QtProperty *property) override;
     void uninitializeProperty(QtProperty *property) override;
 private:
@@ -155,7 +231,7 @@ private:
 
 class QtDatePropertyManagerPrivate;
 
-class QtDatePropertyManager : public QtAbstractPropertyManager
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtDatePropertyManager : public QtAbstractPropertyManager
 {
     Q_OBJECT
 public:
@@ -186,7 +262,7 @@ private:
 
 class QtTimePropertyManagerPrivate;
 
-class QtTimePropertyManager : public QtAbstractPropertyManager
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtTimePropertyManager : public QtAbstractPropertyManager
 {
     Q_OBJECT
 public:
@@ -211,7 +287,7 @@ private:
 
 class QtDateTimePropertyManagerPrivate;
 
-class QtDateTimePropertyManager : public QtAbstractPropertyManager
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtDateTimePropertyManager : public QtAbstractPropertyManager
 {
     Q_OBJECT
 public:
@@ -236,7 +312,7 @@ private:
 
 class QtKeySequencePropertyManagerPrivate;
 
-class QtKeySequencePropertyManager : public QtAbstractPropertyManager
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtKeySequencePropertyManager : public QtAbstractPropertyManager
 {
     Q_OBJECT
 public:
@@ -261,7 +337,7 @@ private:
 
 class QtCharPropertyManagerPrivate;
 
-class QtCharPropertyManager : public QtAbstractPropertyManager
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtCharPropertyManager : public QtAbstractPropertyManager
 {
     Q_OBJECT
 public:
@@ -287,7 +363,7 @@ private:
 class QtEnumPropertyManager;
 class QtLocalePropertyManagerPrivate;
 
-class QtLocalePropertyManager : public QtAbstractPropertyManager
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtLocalePropertyManager : public QtAbstractPropertyManager
 {
     Q_OBJECT
 public:
@@ -316,7 +392,7 @@ private:
 
 class QtPointPropertyManagerPrivate;
 
-class QtPointPropertyManager : public QtAbstractPropertyManager
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtPointPropertyManager : public QtAbstractPropertyManager
 {
     Q_OBJECT
 public:
@@ -345,7 +421,7 @@ private:
 
 class QtPointFPropertyManagerPrivate;
 
-class QtPointFPropertyManager : public QtAbstractPropertyManager
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtPointFPropertyManager : public QtAbstractPropertyManager
 {
     Q_OBJECT
 public:
@@ -377,7 +453,7 @@ private:
 
 class QtSizePropertyManagerPrivate;
 
-class QtSizePropertyManager : public QtAbstractPropertyManager
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtSizePropertyManager : public QtAbstractPropertyManager
 {
     Q_OBJECT
 public:
@@ -389,15 +465,18 @@ public:
     QSize value(const QtProperty *property) const;
     QSize minimum(const QtProperty *property) const;
     QSize maximum(const QtProperty *property) const;
+    bool isReadOnly(const QtProperty *property) const;
 
 public Q_SLOTS:
     void setValue(QtProperty *property, const QSize &val);
     void setMinimum(QtProperty *property, const QSize &minVal);
     void setMaximum(QtProperty *property, const QSize &maxVal);
     void setRange(QtProperty *property, const QSize &minVal, const QSize &maxVal);
+    void setReadOnly(QtProperty *property, bool readOnly);
 Q_SIGNALS:
     void valueChanged(QtProperty *property, const QSize &val);
     void rangeChanged(QtProperty *property, const QSize &minVal, const QSize &maxVal);
+    void readOnlyChanged(QtProperty *property, bool readOnly);
 protected:
     QString valueText(const QtProperty *property) const override;
     void initializeProperty(QtProperty *property) override;
@@ -412,7 +491,7 @@ private:
 
 class QtSizeFPropertyManagerPrivate;
 
-class QtSizeFPropertyManager : public QtAbstractPropertyManager
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtSizeFPropertyManager : public QtAbstractPropertyManager
 {
     Q_OBJECT
 public:
@@ -425,6 +504,7 @@ public:
     QSizeF minimum(const QtProperty *property) const;
     QSizeF maximum(const QtProperty *property) const;
     int decimals(const QtProperty *property) const;
+    bool isReadOnly(const QtProperty *property) const;
 
 public Q_SLOTS:
     void setValue(QtProperty *property, const QSizeF &val);
@@ -432,10 +512,12 @@ public Q_SLOTS:
     void setMaximum(QtProperty *property, const QSizeF &maxVal);
     void setRange(QtProperty *property, const QSizeF &minVal, const QSizeF &maxVal);
     void setDecimals(QtProperty *property, int prec);
+    void setReadOnly(QtProperty *property, bool readOnly);
 Q_SIGNALS:
     void valueChanged(QtProperty *property, const QSizeF &val);
     void rangeChanged(QtProperty *property, const QSizeF &minVal, const QSizeF &maxVal);
     void decimalsChanged(QtProperty *property, int prec);
+    void readOnlyChanged(QtProperty *property, bool readOnly);
 protected:
     QString valueText(const QtProperty *property) const override;
     void initializeProperty(QtProperty *property) override;
@@ -450,7 +532,7 @@ private:
 
 class QtRectPropertyManagerPrivate;
 
-class QtRectPropertyManager : public QtAbstractPropertyManager
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtRectPropertyManager : public QtAbstractPropertyManager
 {
     Q_OBJECT
 public:
@@ -482,7 +564,7 @@ private:
 
 class QtRectFPropertyManagerPrivate;
 
-class QtRectFPropertyManager : public QtAbstractPropertyManager
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtRectFPropertyManager : public QtAbstractPropertyManager
 {
     Q_OBJECT
 public:
@@ -517,7 +599,7 @@ private:
 
 class QtEnumPropertyManagerPrivate;
 
-class QtEnumPropertyManager : public QtAbstractPropertyManager
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtEnumPropertyManager : public QtAbstractPropertyManager
 {
     Q_OBJECT
 public:
@@ -549,7 +631,7 @@ private:
 
 class QtFlagPropertyManagerPrivate;
 
-class QtFlagPropertyManager : public QtAbstractPropertyManager
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtFlagPropertyManager : public QtAbstractPropertyManager
 {
     Q_OBJECT
 public:
@@ -581,7 +663,7 @@ private:
 
 class QtSizePolicyPropertyManagerPrivate;
 
-class QtSizePolicyPropertyManager : public QtAbstractPropertyManager
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtSizePolicyPropertyManager : public QtAbstractPropertyManager
 {
     Q_OBJECT
 public:
@@ -612,7 +694,7 @@ private:
 
 class QtFontPropertyManagerPrivate;
 
-class QtFontPropertyManager : public QtAbstractPropertyManager
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtFontPropertyManager : public QtAbstractPropertyManager
 {
     Q_OBJECT
 public:
@@ -648,7 +730,7 @@ private:
 
 class QtColorPropertyManagerPrivate;
 
-class QtColorPropertyManager : public QtAbstractPropertyManager
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtColorPropertyManager : public QtAbstractPropertyManager
 {
     Q_OBJECT
 public:
@@ -678,7 +760,7 @@ private:
 
 class QtCursorPropertyManagerPrivate;
 
-class QtCursorPropertyManager : public QtAbstractPropertyManager
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtCursorPropertyManager : public QtAbstractPropertyManager
 {
     Q_OBJECT
 public:

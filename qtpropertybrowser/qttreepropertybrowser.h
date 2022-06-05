@@ -5,13 +5,14 @@
 #define QTTREEPROPERTYBROWSER_H
 
 #include "qtpropertybrowser.h"
+#include "QtPropertyBrowserLibrary.hpp"
 
 QT_BEGIN_NAMESPACE
 
 class QTreeWidgetItem;
 class QtTreePropertyBrowserPrivate;
 
-class QtTreePropertyBrowser : public QtAbstractPropertyBrowser
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtTreePropertyBrowser : public QtAbstractPropertyBrowser
 {
     Q_OBJECT
     Q_PROPERTY(int indentation READ indentation WRITE setIndentation)

@@ -5,6 +5,7 @@
 #define QTEDITORFACTORY_H
 
 #include "qtpropertymanager.h"
+#include "QtPropertyBrowserLibrary.hpp"
 
 QT_BEGIN_NAMESPACE
 
@@ -12,7 +13,7 @@ class QRegularExpression;
 
 class QtSpinBoxFactoryPrivate;
 
-class QtSpinBoxFactory : public QtAbstractEditorFactory<QtIntPropertyManager>
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtSpinBoxFactory : public QtAbstractEditorFactory<QtIntPropertyManager>
 {
     Q_OBJECT
 public:
@@ -30,6 +31,7 @@ private:
     Q_PRIVATE_SLOT(d_func(), void slotPropertyChanged(QtProperty *, int))
     Q_PRIVATE_SLOT(d_func(), void slotRangeChanged(QtProperty *, int, int))
     Q_PRIVATE_SLOT(d_func(), void slotSingleStepChanged(QtProperty *, int))
+    Q_PRIVATE_SLOT(d_func(), void slotReadOnlyChanged(QtProperty *, bool))
     Q_PRIVATE_SLOT(d_func(), void slotSetValue(int))
     Q_PRIVATE_SLOT(d_func(), void slotEditorDestroyed(QObject *))
 };
@@ -100,6 +102,7 @@ private:
     Q_DECLARE_PRIVATE(QtCheckBoxFactory)
     Q_DISABLE_COPY_MOVE(QtCheckBoxFactory)
     Q_PRIVATE_SLOT(d_func(), void slotPropertyChanged(QtProperty *, bool))
+    Q_PRIVATE_SLOT(d_func(), void slotReadOnlyChanged(QtProperty *, bool))
     Q_PRIVATE_SLOT(d_func(), void slotSetValue(bool))
     Q_PRIVATE_SLOT(d_func(), void slotEditorDestroyed(QObject *))
 };
@@ -125,6 +128,7 @@ private:
     Q_PRIVATE_SLOT(d_func(), void slotRangeChanged(QtProperty *, double, double))
     Q_PRIVATE_SLOT(d_func(), void slotSingleStepChanged(QtProperty *, double))
     Q_PRIVATE_SLOT(d_func(), void slotDecimalsChanged(QtProperty *, int))
+    Q_PRIVATE_SLOT(d_func(), void slotReadOnlyChanged(QtProperty *, bool))
     Q_PRIVATE_SLOT(d_func(), void slotSetValue(double))
     Q_PRIVATE_SLOT(d_func(), void slotEditorDestroyed(QObject *))
 };
@@ -148,6 +152,7 @@ private:
     Q_DISABLE_COPY_MOVE(QtLineEditFactory)
     Q_PRIVATE_SLOT(d_func(), void slotPropertyChanged(QtProperty *, const QString &))
     Q_PRIVATE_SLOT(d_func(), void slotRegExpChanged(QtProperty *, const QRegularExpression &))
+    Q_PRIVATE_SLOT(d_func(), void slotReadOnlyChanged(QtProperty *, bool))
     Q_PRIVATE_SLOT(d_func(), void slotSetValue(const QString &))
     Q_PRIVATE_SLOT(d_func(), void slotEditorDestroyed(QObject *))
 };
@@ -353,6 +358,52 @@ private:
     Q_PRIVATE_SLOT(d_func(), void slotPropertyChanged(QtProperty *, const QFont &))
     Q_PRIVATE_SLOT(d_func(), void slotEditorDestroyed(QObject *))
     Q_PRIVATE_SLOT(d_func(), void slotSetValue(const QFont &))
+};
+
+class QtFilePathEditorFactoryPrivate;
+
+class QtFilePathEditorFactory : public QtAbstractEditorFactory<QtFilePathPropertyManager>
+{
+    Q_OBJECT
+public:
+    QtFilePathEditorFactory(QObject *parent = 0);
+    ~QtFilePathEditorFactory();
+protected:
+    void connectPropertyManager(QtFilePathPropertyManager *manager) override;
+    QWidget *createEditor(QtFilePathPropertyManager *manager, QtProperty *property,
+                QWidget *parent) override;
+    void disconnectPropertyManager(QtFilePathPropertyManager *manager) override;
+private:
+    QScopedPointer<QtFilePathEditorFactoryPrivate> d_ptr;
+    Q_DECLARE_PRIVATE(QtFilePathEditorFactory)
+    Q_DISABLE_COPY_MOVE(QtFilePathEditorFactory)
+    Q_PRIVATE_SLOT(d_func(), void slotPropertyChanged(QtProperty *, const QString &))
+    Q_PRIVATE_SLOT(d_func(), void slotFilterChanged(QtProperty *, const QString &))
+    Q_PRIVATE_SLOT(d_func(), void slotModeChanged(QtProperty *, const QString &))
+    Q_PRIVATE_SLOT(d_func(), void slotSetValue(const QString &))
+    Q_PRIVATE_SLOT(d_func(), void slotEditorDestroyed(QObject *))
+};
+
+class QtPathEditorFactoryPrivate;
+
+class QtPathEditorFactory : public QtAbstractEditorFactory<QtPathPropertyManager>
+{
+    Q_OBJECT
+public:
+    QtPathEditorFactory(QObject *parent = 0);
+    ~QtPathEditorFactory();
+protected:
+    void connectPropertyManager(QtPathPropertyManager *manager) override;
+    QWidget *createEditor(QtPathPropertyManager *manager, QtProperty *property,
+                QWidget *parent) override;
+    void disconnectPropertyManager(QtPathPropertyManager *manager) override;
+private:
+    QScopedPointer<QtPathEditorFactoryPrivate> d_ptr;
+    Q_DECLARE_PRIVATE(QtPathEditorFactory)
+    Q_DISABLE_COPY_MOVE(QtPathEditorFactory)
+    Q_PRIVATE_SLOT(d_func(), void slotPropertyChanged(QtProperty *, const QString &))
+    Q_PRIVATE_SLOT(d_func(), void slotSetValue(const QString &))
+    Q_PRIVATE_SLOT(d_func(), void slotEditorDestroyed(QObject *))
 };
 
 QT_END_NAMESPACE
