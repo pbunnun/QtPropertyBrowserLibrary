@@ -1,41 +1,5 @@
-/****************************************************************************
-**
-** Copyright (C) 2016 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the tools applications of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 
 #include "qtpropertymanager.h"
 #include "qtpropertybrowserutils_p.h"
@@ -386,27 +350,53 @@ public:
 
     QStringList policyEnumNames() const { return m_policyEnumNames; }
     QStringList languageEnumNames() const { return m_languageEnumNames; }
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) )
+    QStringList territoryEnumNames(QLocale::Language language) const { return m_territoryEnumNames.value(language); }
+#else
     QStringList countryEnumNames(QLocale::Language language) const { return m_countryEnumNames.value(language); }
+#endif
 
     QSizePolicy::Policy indexToSizePolicy(int index) const;
     int sizePolicyToIndex(QSizePolicy::Policy policy) const;
-
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) )
+    void indexToLocale(int languageIndex, int territoryIndex, QLocale::Language *language, QLocale::Territory *territory) const;
+    void localeToIndex(QLocale::Language language, QLocale::Territory territory, int *languageIndex, int *territoryIndex) const;
+#else
     void indexToLocale(int languageIndex, int countryIndex, QLocale::Language *language, QLocale::Country *country) const;
     void localeToIndex(QLocale::Language language, QLocale::Country country, int *languageIndex, int *countryIndex) const;
+#endif
 
 private:
     void initLocale();
 
     QStringList m_policyEnumNames;
     QStringList m_languageEnumNames;
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) )
+    QMap<QLocale::Language, QStringList> m_territoryEnumNames;
+#else
     QMap<QLocale::Language, QStringList> m_countryEnumNames;
+#endif
     QMap<int, QLocale::Language> m_indexToLanguage;
     QMap<QLocale::Language, int> m_languageToIndex;
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) )
+    QMap<int, QMap<int, QLocale::Territory> > m_indexToTerritory;
+    QMap<QLocale::Language, QMap<QLocale::Territory, int> > m_territoryToIndex;
+#else
     QMap<int, QMap<int, QLocale::Country> > m_indexToCountry;
     QMap<QLocale::Language, QMap<QLocale::Country, int> > m_countryToIndex;
+#endif
     QMetaEnum m_policyEnum;
 };
 
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) )
+static QList<QLocale::Territory> sortTerritories(const QList<QLocale::Territory> &territories)
+{
+    QMultiMap<QString, QLocale::Territory> nameToTerritory;
+    for (QLocale::Territory territory : territories)
+        nameToTerritory.insert(QLocale::territoryToString(territory), territory);
+    return nameToTerritory.values();
+}
+#else
 static QList<QLocale::Country> sortCountries(const QList<QLocale::Country> &countries)
 {
     QMultiMap<QString, QLocale::Country> nameToCountry;
@@ -414,6 +404,7 @@ static QList<QLocale::Country> sortCountries(const QList<QLocale::Country> &coun
         nameToCountry.insert(QLocale::countryToString(country), country);
     return nameToCountry.values();
 }
+#endif
 
 void QtMetaEnumProvider::initLocale()
 {
@@ -431,6 +422,31 @@ void QtMetaEnumProvider::initLocale()
 
     const auto languages = nameToLanguage.values();
     for (QLocale::Language language : languages) {
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) )
+        const auto localesForLanguage = QLocale::matchingLocales(language, QLocale::AnyScript, QLocale::AnyTerritory);
+        QList<QLocale::Territory> territories;
+        territories.reserve(localesForLanguage.size());
+        for (const auto &locale : localesForLanguage)
+            territories << locale.territory();
+        if (territories.isEmpty() && language == system.language())
+            territories << system.territory();
+
+        if (!territories.isEmpty() && !m_languageToIndex.contains(language)) {
+            territories = sortTerritories(territories);
+            int langIdx = m_languageEnumNames.count();
+            m_indexToLanguage[langIdx] = language;
+            m_languageToIndex[language] = langIdx;
+            QStringList territoryNames;
+            int territoryIdx = 0;
+            for (QLocale::Territory territory : qAsConst(territories)) {
+                territoryNames << QLocale::territoryToString(territory);
+                m_indexToTerritory[langIdx][territoryIdx] = territory;
+                m_territoryToIndex[language][territory] = territoryIdx;
+                ++territoryIdx;
+            }
+            m_languageEnumNames << QLocale::languageToString(language);
+            m_territoryEnumNames[language] = territoryNames;
+#else
         QList<QLocale::Country> countries;
         countries = QLocale::countriesForLanguage(language);
         if (countries.isEmpty() && language == system.language())
@@ -452,6 +468,7 @@ void QtMetaEnumProvider::initLocale()
             m_languageEnumNames << QLocale::languageToString(language);
             m_countryEnumNames[language] = countryNames;
         }
+#endif
     }
 }
 
@@ -483,6 +500,38 @@ int QtMetaEnumProvider::sizePolicyToIndex(QSizePolicy::Policy policy) const
     return -1;
 }
 
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) )
+void QtMetaEnumProvider::indexToLocale(int languageIndex, int territoryIndex, QLocale::Language *language, QLocale::Territory *territory) const
+{
+    QLocale::Language l = QLocale::C;
+    QLocale::Territory c = QLocale::AnyTerritory;
+    if (m_indexToLanguage.contains(languageIndex)) {
+        l = m_indexToLanguage[languageIndex];
+        if (m_indexToTerritory.contains(languageIndex) && m_indexToTerritory[languageIndex].contains(territoryIndex))
+            c = m_indexToTerritory[languageIndex][territoryIndex];
+    }
+    if (language)
+        *language = l;
+    if (territory)
+        *territory = c;
+}
+
+void QtMetaEnumProvider::localeToIndex(QLocale::Language language, QLocale::Territory territory, int *languageIndex, int *territoryIndex) const
+{
+    int l = -1;
+    int c = -1;
+    if (m_languageToIndex.contains(language)) {
+        l = m_languageToIndex[language];
+        if (m_territoryToIndex.contains(language) && m_territoryToIndex[language].contains(territory))
+            c = m_territoryToIndex[language][territory];
+    }
+
+    if (languageIndex)
+        *languageIndex = l;
+    if (territoryIndex)
+        *territoryIndex = c;
+}
+#else
 void QtMetaEnumProvider::indexToLocale(int languageIndex, int countryIndex, QLocale::Language *language, QLocale::Country *country) const
 {
     QLocale::Language l = QLocale::C;
@@ -513,6 +562,7 @@ void QtMetaEnumProvider::localeToIndex(QLocale::Language language, QLocale::Coun
     if (countryIndex)
         *countryIndex = c;
 }
+#endif
 
 Q_GLOBAL_STATIC(QtMetaEnumProvider, metaEnumProvider)
 
@@ -2628,11 +2678,19 @@ public:
 
     QtEnumPropertyManager *m_enumPropertyManager;
 
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) )
+    QMap<const QtProperty *, QtProperty *> m_propertyToLanguage;
+    QMap<const QtProperty *, QtProperty *> m_propertyToTerritory;
+
+    QMap<const QtProperty *, QtProperty *> m_languageToProperty;
+    QMap<const QtProperty *, QtProperty *> m_territoryToProperty;
+#else
     QMap<const QtProperty *, QtProperty *> m_propertyToLanguage;
     QMap<const QtProperty *, QtProperty *> m_propertyToCountry;
 
     QMap<const QtProperty *, QtProperty *> m_languageToProperty;
     QMap<const QtProperty *, QtProperty *> m_countryToProperty;
+#endif
 };
 
 QtLocalePropertyManagerPrivate::QtLocalePropertyManagerPrivate()
@@ -2641,6 +2699,23 @@ QtLocalePropertyManagerPrivate::QtLocalePropertyManagerPrivate()
 
 void QtLocalePropertyManagerPrivate::slotEnumChanged(QtProperty *property, int value)
 {
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) )
+    if (QtProperty *prop = m_languageToProperty.value(property, 0)) {
+        const QLocale loc = m_values[prop];
+        QLocale::Language newLanguage = loc.language();
+        QLocale::Territory newTerritory = loc.territory();
+        metaEnumProvider()->indexToLocale(value, 0, &newLanguage, 0);
+        QLocale newLoc(newLanguage, newTerritory);
+        q_ptr->setValue(prop, newLoc);
+    } else if (QtProperty *prop = m_territoryToProperty.value(property, 0)) {
+        const QLocale loc = m_values[prop];
+        QLocale::Language newLanguage = loc.language();
+        QLocale::Territory newTerritory = loc.territory();
+        metaEnumProvider()->indexToLocale(m_enumPropertyManager->value(m_propertyToLanguage.value(prop)), value, &newLanguage, &newTerritory);
+        QLocale newLoc(newLanguage, newTerritory);
+        q_ptr->setValue(prop, newLoc);
+    }
+#else
     if (QtProperty *prop = m_languageToProperty.value(property, 0)) {
         const QLocale loc = m_values[prop];
         QLocale::Language newLanguage = loc.language();
@@ -2656,6 +2731,7 @@ void QtLocalePropertyManagerPrivate::slotEnumChanged(QtProperty *property, int v
         QLocale newLoc(newLanguage, newCountry);
         q_ptr->setValue(prop, newLoc);
     }
+#endif
 }
 
 void QtLocalePropertyManagerPrivate::slotPropertyDestroyed(QtProperty *property)
@@ -2663,9 +2739,15 @@ void QtLocalePropertyManagerPrivate::slotPropertyDestroyed(QtProperty *property)
     if (QtProperty *subProp = m_languageToProperty.value(property, 0)) {
         m_propertyToLanguage[subProp] = 0;
         m_languageToProperty.remove(property);
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) )
+    } else if (QtProperty *subProp = m_territoryToProperty.value(property, 0)) {
+        m_propertyToTerritory[subProp] = 0;
+        m_territoryToProperty.remove(property);
+#else
     } else if (QtProperty *subProp = m_countryToProperty.value(property, 0)) {
         m_propertyToCountry[subProp] = 0;
         m_countryToProperty.remove(property);
+#endif
     }
 }
 
@@ -2767,6 +2849,21 @@ QString QtLocalePropertyManager::valueText(const QtProperty *property) const
     const QLocale loc = it.value();
 
     int langIdx = 0;
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) )
+    int territoryIdx = 0;
+    const QtMetaEnumProvider *me = metaEnumProvider();
+    me->localeToIndex(loc.language(), loc.territory(), &langIdx, &territoryIdx);
+    if (langIdx < 0) {
+        qWarning("QtLocalePropertyManager::valueText: Unknown language %d", loc.language());
+        return tr("<Invalid>");
+    }
+    const QString languageName = me->languageEnumNames().at(langIdx);
+    if (territoryIdx < 0) {
+        qWarning("QtLocalePropertyManager::valueText: Unknown territory %d for %s", loc.territory(), qPrintable(languageName));
+        return languageName;
+    }
+    const QString countryName = me->territoryEnumNames(loc.language()).at(territoryIdx);
+#else
     int countryIdx = 0;
     const QtMetaEnumProvider *me = metaEnumProvider();
     me->localeToIndex(loc.language(), loc.country(), &langIdx, &countryIdx);
@@ -2780,6 +2877,7 @@ QString QtLocalePropertyManager::valueText(const QtProperty *property) const
         return languageName;
     }
     const QString countryName = me->countryEnumNames(loc.language()).at(countryIdx);
+#endif
     return tr("%1, %2").arg(languageName, countryName);
 }
 
@@ -2804,6 +2902,16 @@ void QtLocalePropertyManager::setValue(QtProperty *property, const QLocale &val)
     it.value() = val;
 
     int langIdx = 0;
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) )
+    int territoryIdx = 0;
+    metaEnumProvider()->localeToIndex(val.language(), val.territory(), &langIdx, &territoryIdx);
+    if (loc.language() != val.language()) {
+        d_ptr->m_enumPropertyManager->setValue(d_ptr->m_propertyToLanguage.value(property), langIdx);
+        d_ptr->m_enumPropertyManager->setEnumNames(d_ptr->m_propertyToTerritory.value(property),
+                    metaEnumProvider()->territoryEnumNames(val.language()));
+    }
+    d_ptr->m_enumPropertyManager->setValue(d_ptr->m_propertyToTerritory.value(property), territoryIdx);
+#else
     int countryIdx = 0;
     metaEnumProvider()->localeToIndex(val.language(), val.country(), &langIdx, &countryIdx);
     if (loc.language() != val.language()) {
@@ -2812,7 +2920,7 @@ void QtLocalePropertyManager::setValue(QtProperty *property, const QLocale &val)
                     metaEnumProvider()->countryEnumNames(val.language()));
     }
     d_ptr->m_enumPropertyManager->setValue(d_ptr->m_propertyToCountry.value(property), countryIdx);
-
+#endif
     emit propertyChanged(property);
     emit valueChanged(property, val);
 }
@@ -2826,9 +2934,13 @@ void QtLocalePropertyManager::initializeProperty(QtProperty *property)
     d_ptr->m_values[property] = val;
 
     int langIdx = 0;
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) )
+    int territoryIdx = 0;
+    metaEnumProvider()->localeToIndex(val.language(), val.territory(), &langIdx, &territoryIdx);
+#else
     int countryIdx = 0;
     metaEnumProvider()->localeToIndex(val.language(), val.country(), &langIdx, &countryIdx);
-
+#endif
     QtProperty *languageProp = d_ptr->m_enumPropertyManager->addProperty();
     languageProp->setPropertyName(tr("Language"));
     d_ptr->m_enumPropertyManager->setEnumNames(languageProp, metaEnumProvider()->languageEnumNames());
@@ -2837,6 +2949,15 @@ void QtLocalePropertyManager::initializeProperty(QtProperty *property)
     d_ptr->m_languageToProperty[languageProp] = property;
     property->addSubProperty(languageProp);
 
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) )
+    QtProperty *territoryProp = d_ptr->m_enumPropertyManager->addProperty();
+    territoryProp->setPropertyName(tr("Country"));
+    d_ptr->m_enumPropertyManager->setEnumNames(territoryProp, metaEnumProvider()->territoryEnumNames(val.language()));
+    d_ptr->m_enumPropertyManager->setValue(territoryProp, territoryIdx);
+    d_ptr->m_propertyToTerritory[property] = territoryProp;
+    d_ptr->m_territoryToProperty[territoryProp] = property;
+    property->addSubProperty(territoryProp);
+#else
     QtProperty *countryProp = d_ptr->m_enumPropertyManager->addProperty();
     countryProp->setPropertyName(tr("Country"));
     d_ptr->m_enumPropertyManager->setEnumNames(countryProp, metaEnumProvider()->countryEnumNames(val.language()));
@@ -2844,6 +2965,7 @@ void QtLocalePropertyManager::initializeProperty(QtProperty *property)
     d_ptr->m_propertyToCountry[property] = countryProp;
     d_ptr->m_countryToProperty[countryProp] = property;
     property->addSubProperty(countryProp);
+#endif
 }
 
 /*!
@@ -2858,13 +2980,21 @@ void QtLocalePropertyManager::uninitializeProperty(QtProperty *property)
     }
     d_ptr->m_propertyToLanguage.remove(property);
 
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) )
+    QtProperty *countryProp = d_ptr->m_propertyToTerritory[property];
+    if (countryProp) {
+        d_ptr->m_territoryToProperty.remove(countryProp);
+        delete countryProp;
+    }
+    d_ptr->m_propertyToTerritory.remove(property);
+#else
     QtProperty *countryProp = d_ptr->m_propertyToCountry[property];
     if (countryProp) {
         d_ptr->m_countryToProperty.remove(countryProp);
         delete countryProp;
     }
     d_ptr->m_propertyToCountry.remove(property);
-
+#endif
     d_ptr->m_values.remove(property);
 }
 

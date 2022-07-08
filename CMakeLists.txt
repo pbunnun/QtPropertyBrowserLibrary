@@ -32,6 +32,8 @@ file(GLOB HPP_FILES qtpropertybrowser/*.h)
 add_library(${PROJECT_NAME} SHARED
     ${CPP_FILES}
     ${HPP_FILES}
+
+    qtpropertybrowser/qtpropertybrowser.qrc
 )
 
 add_definitions(-DQT_DEPRECATED_WARNINGS -DQTPROPERTYBROWSER_LIBRARY)
