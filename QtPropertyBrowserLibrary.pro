@@ -28,7 +28,7 @@ else:unix: LIBS +=
 macx {
     QMAKE_MACOSX_DEPLOYMENT_TARGET = 11.0
     QMAKE_MAC_SDK = macosx11.3
-    DESTDIR = ../CVisualDev/CVisualDev.app/Contents/MacOS/
+    DESTDIR = ../CVDev/CVDev.app/Contents/MacOS/
     }
 
 # Default rules for deployment.

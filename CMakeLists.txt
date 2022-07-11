@@ -41,7 +41,7 @@ add_definitions(-DQT_DEPRECATED_WARNINGS -DQTPROPERTYBROWSER_LIBRARY)
 # Required on Unix OS family to be able to be linked into shared libraries.
 set_target_properties(${PROJECT_NAME}
                       PROPERTIES POSITION_INDEPENDENT_CODE ON
-                      RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/CVisualDev/)
+                      RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/CVDev/)
 
 target_link_libraries(${PROJECT_NAME} Qt${QT_VERSION_MAJOR}::Widgets)
 
