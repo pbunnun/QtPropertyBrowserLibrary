@@ -1,6 +1,17 @@
 // Copyright (C) 2016 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 
+//
+//  W A R N I N G
+//  -------------
+//
+// This file is not part of the Qt API. It exists for the convenience
+// of Qt Designer. This header file may change from version to version
+// without notice, or even be removed.
+//
+// We mean it.
+//
+
 #ifndef QTPROPERTYBROWSER_H
 #define QTPROPERTYBROWSER_H
 
@@ -8,7 +19,6 @@
 #include <QtCore/QSet>
 #include <QLineEdit>
 #include <QtPropertyBrowserLibrary.hpp>
-#include "migrate_qt.h"
 
 QT_BEGIN_NAMESPACE
 
@@ -23,6 +33,7 @@ public:
     virtual ~QtProperty();
 
     QList<QtProperty *> subProperties() const;
+    QtProperty *parentProperty() const;
 
     QtAbstractPropertyManager *propertyManager() const;
 
@@ -61,22 +72,19 @@ private:
 
 class QtAbstractPropertyManagerPrivate;
 
-class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtAbstractPropertyManager : public QObject
+class QtAbstractPropertyManager : public QObject
 {
     Q_OBJECT
 public:
-
-    explicit QtAbstractPropertyManager(QObject *parent = 0);
-    ~QtAbstractPropertyManager();
+    explicit QtAbstractPropertyManager(QObject *parent = nullptr);
+    ~QtAbstractPropertyManager() override;
 
     QSet<QtProperty *> properties() const;
     void clear() const;
 
     QtProperty *addProperty(const QString &name = QString());
 Q_SIGNALS:
-
-    void propertyInserted(QtProperty *property,
-                QtProperty *parent, QtProperty *after);
+    void propertyInserted(QtProperty *property, QtProperty *parent, QtProperty *after);
     void propertyChanged(QtProperty *property);
     void propertyRemoved(QtProperty *property, QtProperty *parent);
     void propertyDestroyed(QtProperty *property);
@@ -100,8 +108,7 @@ class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtAbstractEditorFactoryBase : public QOb
 public:
     virtual QWidget *createEditor(QtProperty *property, QWidget *parent) = 0;
 protected:
-    explicit QtAbstractEditorFactoryBase(QObject *parent = 0)
-        : QObject(parent) {}
+    explicit QtAbstractEditorFactoryBase(QObject *parent = nullptr) : QObject(parent) { }
 
     virtual void breakConnection(QtAbstractPropertyManager *manager) = 0;
 protected Q_SLOTS:
@@ -122,7 +129,7 @@ public:
                 return createEditor(manager, property, parent);
             }
         }
-        return 0;
+        return nullptr;
     }
     void addPropertyManager(PropertyManager *manager)
     {
@@ -130,17 +137,18 @@ public:
             return;
         m_managers.insert(manager);
         connectPropertyManager(manager);
-        connect(manager, SIGNAL(destroyed(QObject *)),
-                    this, SLOT(managerDestroyed(QObject *)));
+        connect(manager, &QObject::destroyed,
+                this, &QtAbstractEditorFactory<PropertyManager>::managerDestroyed);
     }
     void removePropertyManager(PropertyManager *manager)
     {
-        if (!m_managers.contains(manager))
+        auto it = m_managers.constFind(manager);
+        if (it == m_managers.cend())
             return;
-        disconnect(manager, SIGNAL(destroyed(QObject *)),
-                    this, SLOT(managerDestroyed(QObject *)));
+        disconnect(manager, &QObject::destroyed,
+                this, &QtAbstractEditorFactory<PropertyManager>::managerDestroyed);
         disconnectPropertyManager(manager);
-        m_managers.remove(manager);
+        m_managers.erase(it);
     }
     QSet<PropertyManager *> propertyManagers() const
     {
@@ -208,9 +216,8 @@ class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtAbstractPropertyBrowser : public QWidg
 {
     Q_OBJECT
 public:
-
-    explicit QtAbstractPropertyBrowser(QWidget *parent = 0);
-    ~QtAbstractPropertyBrowser();
+    explicit QtAbstractPropertyBrowser(QWidget *parent = nullptr);
+    ~QtAbstractPropertyBrowser() override;
 
     QList<QtProperty *> properties() const;
     QList<QtBrowserItem *> items(QtProperty *property) const;

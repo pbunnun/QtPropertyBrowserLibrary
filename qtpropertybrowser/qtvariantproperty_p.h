@@ -1,10 +1,21 @@
 // Copyright (C) 2016 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 
+//
+//  W A R N I N G
+//  -------------
+//
+// This file is not part of the Qt API. It exists for the convenience
+// of Qt Designer. This header file may change from version to version
+// without notice, or even be removed.
+//
+// We mean it.
+//
+
 #ifndef QTVARIANTPROPERTY_H
 #define QTVARIANTPROPERTY_H
 
-#include "qtpropertybrowser.h"
+#include "qtpropertybrowser_p.h"
 #include <QtCore/QVariant>
 #include <QtGui/QIcon>
 #include "QtPropertyBrowserLibrary.hpp"
@@ -13,14 +24,12 @@ QT_BEGIN_NAMESPACE
 
 class QRegularExpression;
 
-typedef QMap<int, QIcon> QtIconMap;
-
 class QtVariantPropertyManager;
 
 class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtVariantProperty : public QtProperty
 {
 public:
-    ~QtVariantProperty();
+    ~QtVariantProperty() override;
     QVariant value() const;
     QVariant attributeValue(const QString &attribute) const;
     int valueType() const;
@@ -39,8 +48,8 @@ class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtVariantPropertyManager : public QtAbst
 {
     Q_OBJECT
 public:
-    QtVariantPropertyManager(QObject *parent = 0);
-    ~QtVariantPropertyManager();
+    QtVariantPropertyManager(QObject *parent = nullptr);
+    ~QtVariantPropertyManager() override;
 
     virtual QtVariantProperty *addProperty(int propertyType, const QString &name = QString());
 
@@ -128,8 +137,9 @@ class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtVariantEditorFactory : public QtAbstra
 {
     Q_OBJECT
 public:
-    QtVariantEditorFactory(QObject *parent = 0);
-    ~QtVariantEditorFactory();
+    QtVariantEditorFactory(QObject *parent = nullptr);
+    ~QtVariantEditorFactory() override;
+
 protected:
     void connectPropertyManager(QtVariantPropertyManager *manager) override;
     QWidget *createEditor(QtVariantPropertyManager *manager, QtProperty *property,
@@ -143,6 +153,4 @@ private:
 
 QT_END_NAMESPACE
 
-Q_DECLARE_METATYPE(QIcon)
-Q_DECLARE_METATYPE(QtIconMap)
 #endif

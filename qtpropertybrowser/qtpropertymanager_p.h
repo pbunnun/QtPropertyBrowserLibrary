@@ -1,10 +1,21 @@
 // Copyright (C) 2016 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 
+//
+//  W A R N I N G
+//  -------------
+//
+// This file is not part of the Qt API. It exists for the convenience
+// of Qt Designer. This header file may change from version to version
+// without notice, or even be removed.
+//
+// We mean it.
+//
+
 #ifndef QTPROPERTYMANAGER_H
 #define QTPROPERTYMANAGER_H
 
-#include "qtpropertybrowser.h"
+#include "qtpropertybrowser_p.h"
 #include "QtPropertyBrowserLibrary.hpp"
 
 QT_BEGIN_NAMESPACE
@@ -21,8 +32,8 @@ class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtFilePathPropertyManager : public QtAbs
 {
     Q_OBJECT
 public:
-    QtFilePathPropertyManager(QObject *parent = 0);
-    ~QtFilePathPropertyManager();
+    QtFilePathPropertyManager(QObject *parent = nullptr);
+    ~QtFilePathPropertyManager() override;
 
     QString value(const QtProperty *property) const;
     QString filter(const QtProperty *property) const;
@@ -52,8 +63,8 @@ class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtPathPropertyManager : public QtAbstrac
 {
     Q_OBJECT
 public:
-    QtPathPropertyManager(QObject *parent = 0);
-    ~QtPathPropertyManager();
+    QtPathPropertyManager(QObject *parent = nullptr);
+    ~QtPathPropertyManager() override;
 
     QString value(const QtProperty *property) const;
 
@@ -75,8 +86,8 @@ class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtGroupPropertyManager : public QtAbstra
 {
     Q_OBJECT
 public:
-    QtGroupPropertyManager(QObject *parent = 0);
-    ~QtGroupPropertyManager();
+    QtGroupPropertyManager(QObject *parent = nullptr);
+    ~QtGroupPropertyManager() override;
 
 protected:
     bool hasValue(const QtProperty *property) const override;
@@ -91,8 +102,8 @@ class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtIntPropertyManager : public QtAbstract
 {
     Q_OBJECT
 public:
-    QtIntPropertyManager(QObject *parent = 0);
-    ~QtIntPropertyManager();
+    QtIntPropertyManager(QObject *parent = nullptr);
+    ~QtIntPropertyManager() override;
 
     int value(const QtProperty *property) const;
     int minimum(const QtProperty *property) const;
@@ -128,8 +139,8 @@ class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtBoolPropertyManager : public QtAbstrac
 {
     Q_OBJECT
 public:
-    QtBoolPropertyManager(QObject *parent = 0);
-    ~QtBoolPropertyManager();
+    QtBoolPropertyManager(QObject *parent = nullptr);
+    ~QtBoolPropertyManager() override;
 
     bool value(const QtProperty *property) const;
     bool textVisible(const QtProperty *property) const;
@@ -160,8 +171,8 @@ class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtDoublePropertyManager : public QtAbstr
 {
     Q_OBJECT
 public:
-    QtDoublePropertyManager(QObject *parent = 0);
-    ~QtDoublePropertyManager();
+    QtDoublePropertyManager(QObject *parent = nullptr);
+    ~QtDoublePropertyManager() override;
 
     double value(const QtProperty *property) const;
     double minimum(const QtProperty *property) const;
@@ -200,8 +211,8 @@ class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtStringPropertyManager : public QtAbstr
 {
     Q_OBJECT
 public:
-    QtStringPropertyManager(QObject *parent = 0);
-    ~QtStringPropertyManager();
+    QtStringPropertyManager(QObject *parent = nullptr);
+    ~QtStringPropertyManager() override;
 
     QString value(const QtProperty *property) const;
     QRegularExpression regExp(const QtProperty *property) const;
@@ -235,8 +246,8 @@ class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtDatePropertyManager : public QtAbstrac
 {
     Q_OBJECT
 public:
-    QtDatePropertyManager(QObject *parent = 0);
-    ~QtDatePropertyManager();
+    QtDatePropertyManager(QObject *parent = nullptr);
+    ~QtDatePropertyManager() override;
 
     QDate value(const QtProperty *property) const;
     QDate minimum(const QtProperty *property) const;
@@ -266,8 +277,8 @@ class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtTimePropertyManager : public QtAbstrac
 {
     Q_OBJECT
 public:
-    QtTimePropertyManager(QObject *parent = 0);
-    ~QtTimePropertyManager();
+    QtTimePropertyManager(QObject *parent = nullptr);
+    ~QtTimePropertyManager() override;
 
     QTime value(const QtProperty *property) const;
 
@@ -291,8 +302,8 @@ class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtDateTimePropertyManager : public QtAbs
 {
     Q_OBJECT
 public:
-    QtDateTimePropertyManager(QObject *parent = 0);
-    ~QtDateTimePropertyManager();
+    QtDateTimePropertyManager(QObject *parent = nullptr);
+    ~QtDateTimePropertyManager() override;
 
     QDateTime value(const QtProperty *property) const;
 
@@ -316,8 +327,8 @@ class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtKeySequencePropertyManager : public Qt
 {
     Q_OBJECT
 public:
-    QtKeySequencePropertyManager(QObject *parent = 0);
-    ~QtKeySequencePropertyManager();
+    QtKeySequencePropertyManager(QObject *parent = nullptr);
+    ~QtKeySequencePropertyManager() override;
 
     QKeySequence value(const QtProperty *property) const;
 
@@ -341,8 +352,8 @@ class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtCharPropertyManager : public QtAbstrac
 {
     Q_OBJECT
 public:
-    QtCharPropertyManager(QObject *parent = 0);
-    ~QtCharPropertyManager();
+    QtCharPropertyManager(QObject *parent = nullptr);
+    ~QtCharPropertyManager() override;
 
     QChar value(const QtProperty *property) const;
 
@@ -367,8 +378,8 @@ class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtLocalePropertyManager : public QtAbstr
 {
     Q_OBJECT
 public:
-    QtLocalePropertyManager(QObject *parent = 0);
-    ~QtLocalePropertyManager();
+    QtLocalePropertyManager(QObject *parent = nullptr);
+    ~QtLocalePropertyManager() override;
 
     QtEnumPropertyManager *subEnumPropertyManager() const;
 
@@ -392,19 +403,19 @@ private:
 
 class QtPointPropertyManagerPrivate;
 
-class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtPointPropertyManager : public QtAbstractPropertyManager
+class QtPointPropertyManager : public QtAbstractPropertyManager
 {
     Q_OBJECT
 public:
-    QtPointPropertyManager(QObject *parent = 0);
-    ~QtPointPropertyManager();
+    QtPointPropertyManager(QObject *parent = nullptr);
+    ~QtPointPropertyManager() override;
 
     QtIntPropertyManager *subIntPropertyManager() const;
 
     QPoint value(const QtProperty *property) const;
 
 public Q_SLOTS:
-    void setValue(QtProperty *property, const QPoint &val);
+    void setValue(QtProperty *property, QPoint val);
 Q_SIGNALS:
     void valueChanged(QtProperty *property, const QPoint &val);
 protected:
@@ -421,12 +432,12 @@ private:
 
 class QtPointFPropertyManagerPrivate;
 
-class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtPointFPropertyManager : public QtAbstractPropertyManager
+class QtPointFPropertyManager : public QtAbstractPropertyManager
 {
     Q_OBJECT
 public:
-    QtPointFPropertyManager(QObject *parent = 0);
-    ~QtPointFPropertyManager();
+    QtPointFPropertyManager(QObject *parent = nullptr);
+    ~QtPointFPropertyManager() override;
 
     QtDoublePropertyManager *subDoublePropertyManager() const;
 
@@ -434,7 +445,7 @@ public:
     int decimals(const QtProperty *property) const;
 
 public Q_SLOTS:
-    void setValue(QtProperty *property, const QPointF &val);
+    void setValue(QtProperty *property, QPointF val);
     void setDecimals(QtProperty *property, int prec);
 Q_SIGNALS:
     void valueChanged(QtProperty *property, const QPointF &val);
@@ -457,8 +468,8 @@ class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtSizePropertyManager : public QtAbstrac
 {
     Q_OBJECT
 public:
-    QtSizePropertyManager(QObject *parent = 0);
-    ~QtSizePropertyManager();
+    QtSizePropertyManager(QObject *parent = nullptr);
+    ~QtSizePropertyManager() override;
 
     QtIntPropertyManager *subIntPropertyManager() const;
 
@@ -468,14 +479,14 @@ public:
     bool isReadOnly(const QtProperty *property) const;
 
 public Q_SLOTS:
-    void setValue(QtProperty *property, const QSize &val);
-    void setMinimum(QtProperty *property, const QSize &minVal);
-    void setMaximum(QtProperty *property, const QSize &maxVal);
-    void setRange(QtProperty *property, const QSize &minVal, const QSize &maxVal);
+    void setValue(QtProperty *property, QSize val);
+    void setMinimum(QtProperty *property, QSize minVal);
+    void setMaximum(QtProperty *property, QSize maxVal);
+    void setRange(QtProperty *property, QSize minVal, QSize maxVal);
     void setReadOnly(QtProperty *property, bool readOnly);
 Q_SIGNALS:
-    void valueChanged(QtProperty *property, const QSize &val);
-    void rangeChanged(QtProperty *property, const QSize &minVal, const QSize &maxVal);
+    void valueChanged(QtProperty *property, QSize val);
+    void rangeChanged(QtProperty *property, QSize minVal, QSize maxVal);
     void readOnlyChanged(QtProperty *property, bool readOnly);
 protected:
     QString valueText(const QtProperty *property) const override;
@@ -491,12 +502,12 @@ private:
 
 class QtSizeFPropertyManagerPrivate;
 
-class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtSizeFPropertyManager : public QtAbstractPropertyManager
+class QtSizeFPropertyManager : public QtAbstractPropertyManager
 {
     Q_OBJECT
 public:
-    QtSizeFPropertyManager(QObject *parent = 0);
-    ~QtSizeFPropertyManager();
+    QtSizeFPropertyManager(QObject *parent = nullptr);
+    ~QtSizeFPropertyManager() override;
 
     QtDoublePropertyManager *subDoublePropertyManager() const;
 
@@ -507,15 +518,15 @@ public:
     bool isReadOnly(const QtProperty *property) const;
 
 public Q_SLOTS:
-    void setValue(QtProperty *property, const QSizeF &val);
-    void setMinimum(QtProperty *property, const QSizeF &minVal);
-    void setMaximum(QtProperty *property, const QSizeF &maxVal);
-    void setRange(QtProperty *property, const QSizeF &minVal, const QSizeF &maxVal);
+    void setValue(QtProperty *property, QSizeF val);
+    void setMinimum(QtProperty *property, QSizeF minVal);
+    void setMaximum(QtProperty *property, QSizeF maxVal);
+    void setRange(QtProperty *property, QSizeF minVal, QSizeF maxVal);
     void setDecimals(QtProperty *property, int prec);
     void setReadOnly(QtProperty *property, bool readOnly);
 Q_SIGNALS:
-    void valueChanged(QtProperty *property, const QSizeF &val);
-    void rangeChanged(QtProperty *property, const QSizeF &minVal, const QSizeF &maxVal);
+    void valueChanged(QtProperty *property, QSizeF val);
+    void rangeChanged(QtProperty *property, QSizeF minVal, QSizeF maxVal);
     void decimalsChanged(QtProperty *property, int prec);
     void readOnlyChanged(QtProperty *property, bool readOnly);
 protected:
@@ -536,8 +547,8 @@ class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtRectPropertyManager : public QtAbstrac
 {
     Q_OBJECT
 public:
-    QtRectPropertyManager(QObject *parent = 0);
-    ~QtRectPropertyManager();
+    QtRectPropertyManager(QObject *parent = nullptr);
+    ~QtRectPropertyManager() override;
 
     QtIntPropertyManager *subIntPropertyManager() const;
 
@@ -545,8 +556,8 @@ public:
     QRect constraint(const QtProperty *property) const;
 
 public Q_SLOTS:
-    void setValue(QtProperty *property, const QRect &val);
-    void setConstraint(QtProperty *property, const QRect &constraint);
+    void setValue(QtProperty *property, QRect val);
+    void setConstraint(QtProperty *property, QRect constraint);
 Q_SIGNALS:
     void valueChanged(QtProperty *property, const QRect &val);
     void constraintChanged(QtProperty *property, const QRect &constraint);
@@ -568,8 +579,8 @@ class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtRectFPropertyManager : public QtAbstra
 {
     Q_OBJECT
 public:
-    QtRectFPropertyManager(QObject *parent = 0);
-    ~QtRectFPropertyManager();
+    QtRectFPropertyManager(QObject *parent = nullptr);
+    ~QtRectFPropertyManager() override;
 
     QtDoublePropertyManager *subDoublePropertyManager() const;
 
@@ -603,8 +614,8 @@ class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtEnumPropertyManager : public QtAbstrac
 {
     Q_OBJECT
 public:
-    QtEnumPropertyManager(QObject *parent = 0);
-    ~QtEnumPropertyManager();
+    QtEnumPropertyManager(QObject *parent = nullptr);
+    ~QtEnumPropertyManager() override;
 
     int value(const QtProperty *property) const;
     QStringList enumNames(const QtProperty *property) const;
@@ -635,8 +646,8 @@ class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtFlagPropertyManager : public QtAbstrac
 {
     Q_OBJECT
 public:
-    QtFlagPropertyManager(QObject *parent = 0);
-    ~QtFlagPropertyManager();
+    QtFlagPropertyManager(QObject *parent = nullptr);
+    ~QtFlagPropertyManager() override;
 
     QtBoolPropertyManager *subBoolPropertyManager() const;
 
@@ -667,8 +678,8 @@ class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtSizePolicyPropertyManager : public QtA
 {
     Q_OBJECT
 public:
-    QtSizePolicyPropertyManager(QObject *parent = 0);
-    ~QtSizePolicyPropertyManager();
+    QtSizePolicyPropertyManager(QObject *parent = nullptr);
+    ~QtSizePolicyPropertyManager() override;
 
     QtIntPropertyManager *subIntPropertyManager() const;
     QtEnumPropertyManager *subEnumPropertyManager() const;
@@ -676,7 +687,7 @@ public:
     QSizePolicy value(const QtProperty *property) const;
 
 public Q_SLOTS:
-    void setValue(QtProperty *property, const QSizePolicy &val);
+    void setValue(QtProperty *property, QSizePolicy val);
 Q_SIGNALS:
     void valueChanged(QtProperty *property, const QSizePolicy &val);
 protected:
@@ -698,8 +709,8 @@ class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtFontPropertyManager : public QtAbstrac
 {
     Q_OBJECT
 public:
-    QtFontPropertyManager(QObject *parent = 0);
-    ~QtFontPropertyManager();
+    QtFontPropertyManager(QObject *parent = nullptr);
+    ~QtFontPropertyManager() override;
 
     QtIntPropertyManager *subIntPropertyManager() const;
     QtEnumPropertyManager *subEnumPropertyManager() const;
@@ -734,15 +745,15 @@ class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtColorPropertyManager : public QtAbstra
 {
     Q_OBJECT
 public:
-    QtColorPropertyManager(QObject *parent = 0);
-    ~QtColorPropertyManager();
+    QtColorPropertyManager(QObject *parent = nullptr);
+    ~QtColorPropertyManager() override;
 
     QtIntPropertyManager *subIntPropertyManager() const;
 
     QColor value(const QtProperty *property) const;
 
 public Q_SLOTS:
-    void setValue(QtProperty *property, const QColor &val);
+    void setValue(QtProperty *property, QColor val);
 Q_SIGNALS:
     void valueChanged(QtProperty *property, const QColor &val);
 protected:
@@ -764,8 +775,8 @@ class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtCursorPropertyManager : public QtAbstr
 {
     Q_OBJECT
 public:
-    QtCursorPropertyManager(QObject *parent = 0);
-    ~QtCursorPropertyManager();
+    QtCursorPropertyManager(QObject *parent = nullptr);
+    ~QtCursorPropertyManager() override;
 
 #ifndef QT_NO_CURSOR
     QCursor value(const QtProperty *property) const;

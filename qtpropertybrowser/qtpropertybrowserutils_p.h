@@ -41,6 +41,9 @@ public:
 #ifndef QT_NO_CURSOR
     QCursor valueToCursor(int value) const;
 #endif
+
+    static QtCursorDatabase *instance();
+
 private:
     void appendCursor(Qt::CursorShape shape, const QString &name, const QIcon &icon);
     QStringList m_cursorNames;
@@ -54,7 +57,7 @@ class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtPropertyBrowserUtils
 public:
     static QPixmap brushValuePixmap(const QBrush &b);
     static QIcon brushValueIcon(const QBrush &b);
-    static QString colorValueText(const QColor &c);
+    static QString colorValueText(QColor c);
     static QPixmap fontValuePixmap(const QFont &f);
     static QIcon fontValueIcon(const QFont &f);
     static QString fontValueText(const QFont &f);
@@ -63,10 +66,10 @@ public:
     static QString dateTimeFormat();
 };
 
-class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtBoolEdit : public QWidget {
+class QtBoolEdit : public QWidget {
     Q_OBJECT
 public:
-    QtBoolEdit(QWidget *parent = 0);
+    QtBoolEdit(QWidget *parent = nullptr);
 
     bool textVisible() const { return m_textVisible; }
     void setTextVisible(bool textVisible);

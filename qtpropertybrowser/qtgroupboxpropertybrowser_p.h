@@ -1,10 +1,21 @@
 // Copyright (C) 2016 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 
+//
+//  W A R N I N G
+//  -------------
+//
+// This file is not part of the Qt API. It exists for the convenience
+// of Qt Designer. This header file may change from version to version
+// without notice, or even be removed.
+//
+// We mean it.
+//
+
 #ifndef QTGROUPBOXPROPERTYBROWSER_H
 #define QTGROUPBOXPROPERTYBROWSER_H
 
-#include "qtpropertybrowser.h"
+#include "qtpropertybrowser_p.h"
 #include "QtPropertyBrowserLibrary.hpp"
 
 QT_BEGIN_NAMESPACE
@@ -15,9 +26,8 @@ class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtGroupBoxPropertyBrowser : public QtAbs
 {
     Q_OBJECT
 public:
-
-    QtGroupBoxPropertyBrowser(QWidget *parent = 0);
-    ~QtGroupBoxPropertyBrowser();
+    QtGroupBoxPropertyBrowser(QWidget *parent = nullptr);
+    ~QtGroupBoxPropertyBrowser() override;
 
 protected:
     void itemInserted(QtBrowserItem *item, QtBrowserItem *afterItem) override;
@@ -25,13 +35,9 @@ protected:
     void itemChanged(QtBrowserItem *item) override;
 
 private:
-
     QScopedPointer<QtGroupBoxPropertyBrowserPrivate> d_ptr;
     Q_DECLARE_PRIVATE(QtGroupBoxPropertyBrowser)
     Q_DISABLE_COPY_MOVE(QtGroupBoxPropertyBrowser)
-    Q_PRIVATE_SLOT(d_func(), void slotUpdate())
-    Q_PRIVATE_SLOT(d_func(), void slotEditorDestroyed())
-
 };
 
 QT_END_NAMESPACE

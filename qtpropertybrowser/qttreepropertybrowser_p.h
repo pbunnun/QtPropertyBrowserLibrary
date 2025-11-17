@@ -1,10 +1,21 @@
 // Copyright (C) 2016 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 
+//
+//  W A R N I N G
+//  -------------
+//
+// This file is not part of the Qt API. It exists for the convenience
+// of Qt Designer. This header file may change from version to version
+// without notice, or even be removed.
+//
+// We mean it.
+//
+
 #ifndef QTTREEPROPERTYBROWSER_H
 #define QTTREEPROPERTYBROWSER_H
 
-#include "qtpropertybrowser.h"
+#include "qtpropertybrowser_p.h"
 #include "QtPropertyBrowserLibrary.hpp"
 
 QT_BEGIN_NAMESPACE
@@ -23,7 +34,6 @@ class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtTreePropertyBrowser : public QtAbstrac
     Q_PROPERTY(int splitterPosition READ splitterPosition WRITE setSplitterPosition)
     Q_PROPERTY(bool propertiesWithoutValueMarked READ propertiesWithoutValueMarked WRITE setPropertiesWithoutValueMarked)
 public:
-
     enum ResizeMode
     {
         Interactive,
@@ -33,8 +43,8 @@ public:
     };
     Q_ENUM(ResizeMode)
 
-    QtTreePropertyBrowser(QWidget *parent = 0);
-    ~QtTreePropertyBrowser();
+    QtTreePropertyBrowser(QWidget *parent = nullptr);
+    ~QtTreePropertyBrowser() override;
 
     int indentation() const;
     void setIndentation(int i);
@@ -60,7 +70,7 @@ public:
     bool isItemVisible(QtBrowserItem *item) const;
     void setItemVisible(QtBrowserItem *item, bool visible);
 
-    void setBackgroundColor(QtBrowserItem *item, const QColor &color);
+    void setBackgroundColor(QtBrowserItem *item, QColor color);
     QColor backgroundColor(QtBrowserItem *item) const;
     QColor calculatedBackgroundColor(QtBrowserItem *item) const;
 
@@ -70,7 +80,6 @@ public:
     void editItem(QtBrowserItem *item);
 
 Q_SIGNALS:
-
     void collapsed(QtBrowserItem *item);
     void expanded(QtBrowserItem *item);
 
@@ -80,16 +89,9 @@ protected:
     void itemChanged(QtBrowserItem *item) override;
 
 private:
-
     QScopedPointer<QtTreePropertyBrowserPrivate> d_ptr;
     Q_DECLARE_PRIVATE(QtTreePropertyBrowser)
     Q_DISABLE_COPY_MOVE(QtTreePropertyBrowser)
-
-    Q_PRIVATE_SLOT(d_func(), void slotCollapsed(const QModelIndex &))
-    Q_PRIVATE_SLOT(d_func(), void slotExpanded(const QModelIndex &))
-    Q_PRIVATE_SLOT(d_func(), void slotCurrentBrowserItemChanged(QtBrowserItem *))
-    Q_PRIVATE_SLOT(d_func(), void slotCurrentTreeItemChanged(QTreeWidgetItem *, QTreeWidgetItem *))
-
 };
 
 QT_END_NAMESPACE
