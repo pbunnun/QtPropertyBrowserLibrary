@@ -25,7 +25,13 @@ static constexpr bool isWindows = QOperatingSystemVersion::currentType() == QOpe
 
 static inline bool isLightTheme()
 {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
     return QGuiApplication::styleHints()->colorScheme() != Qt::ColorScheme::Dark;
+#else
+    QColor windowColor = QApplication::palette().color(QPalette::Window);
+    int brightness = (windowColor.red() * 299 + windowColor.green() * 587 + windowColor.blue() * 114) / 1000;
+    return brightness > 128;
+#endif
 }
 
 class QtPropertyEditorView;
