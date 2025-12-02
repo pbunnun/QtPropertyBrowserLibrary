@@ -32,13 +32,26 @@ add_library(${PROJECT_NAME} SHARED
     qtpropertybrowser/qtpropertybrowser.qrc
 )
 
-add_definitions(-DQT_DEPRECATED_WARNINGS -DQTPROPERTYBROWSER_LIBRARY)
+target_compile_definitions(${PROJECT_NAME}
+    PRIVATE
+        QT_DEPRECATED_WARNINGS
+        QTPROPERTYBROWSER_LIBRARY
+)
 
 # Required on Unix OS family to be able to be linked into shared libraries.
 set_target_properties(${PROJECT_NAME}
                       PROPERTIES 
                       POSITION_INDEPENDENT_CODE ON
-                      LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/CVDev/)
+                      LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/CVDev/
+                      RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/CVDev/
+                      ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/CVDev/
+                      # Multi-config generators (Visual Studio) put outputs in config subdirs
+                      RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/CVDev/
+                      RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/CVDev/
+                      ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/CVDev/
+                      ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/CVDev/
+                      LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/CVDev/
+                      LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/CVDev/)
 
 target_link_libraries(${PROJECT_NAME} Qt6::Widgets)
 

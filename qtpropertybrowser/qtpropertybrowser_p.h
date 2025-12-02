@@ -72,7 +72,7 @@ private:
 
 class QtAbstractPropertyManagerPrivate;
 
-class QtAbstractPropertyManager : public QObject
+class QTPROPERTYBROWSERSHAREDLIB_EXPORT QtAbstractPropertyManager : public QObject
 {
     Q_OBJECT
 public:
