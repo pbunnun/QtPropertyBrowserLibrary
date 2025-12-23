@@ -303,7 +303,9 @@ public:
     void slotValueChanged(QtProperty *property, const QChar &val);
     void slotValueChanged(QtProperty *property, const QLocale &val);
     void slotValueChanged(QtProperty *property, QPoint val);
+    void slotRangeChanged(QtProperty *property, const QPoint &min, const QPoint &max);
     void slotValueChanged(QtProperty *property, QPointF val);
+    void slotRangeChanged(QtProperty *property, const QPointF &min, const QPointF &max);
     void slotValueChanged(QtProperty *property, QSize val);
     void slotRangeChanged(QtProperty *property, QSize min, QSize max);
     void slotValueChanged(QtProperty *property, const QSizeF &val);
@@ -606,6 +608,14 @@ void QtVariantPropertyManagerPrivate::slotValueChanged(QtProperty *property, QPo
     valueChanged(property, QVariant(val));
 }
 
+void QtVariantPropertyManagerPrivate::slotRangeChanged(QtProperty *property, const QPoint &min, const QPoint &max)
+{
+    if (QtVariantProperty *varProp = m_internalToProperty.value(property, nullptr)) {
+        emit q_ptr->attributeChanged(varProp, m_minimumAttribute, QVariant(min));
+        emit q_ptr->attributeChanged(varProp, m_maximumAttribute, QVariant(max));
+    }
+}
+
 void QtVariantPropertyManagerPrivate::slotValueChanged(QtProperty *property, QPointF val)
 {
     valueChanged(property, QVariant(val));
@@ -630,6 +640,14 @@ void QtVariantPropertyManagerPrivate::slotValueChanged(QtProperty *property, con
 }
 
 void QtVariantPropertyManagerPrivate::slotRangeChanged(QtProperty *property, const QSizeF &min, const QSizeF &max)
+{
+    if (QtVariantProperty *varProp = m_internalToProperty.value(property, nullptr)) {
+        emit q_ptr->attributeChanged(varProp, m_minimumAttribute, QVariant(min));
+        emit q_ptr->attributeChanged(varProp, m_maximumAttribute, QVariant(max));
+    }
+}
+
+void QtVariantPropertyManagerPrivate::slotRangeChanged(QtProperty *property, const QPointF &min, const QPointF &max)
 {
     if (QtVariantProperty *varProp = m_internalToProperty.value(property, nullptr)) {
         emit q_ptr->attributeChanged(varProp, m_minimumAttribute, QVariant(min));
@@ -1119,9 +1137,16 @@ QtVariantPropertyManager::QtVariantPropertyManager(QObject *parent)
     auto *pointPropertyManager = new QtPointPropertyManager(this);
     d_ptr->m_typeToPropertyManager[QMetaType::QPoint] = pointPropertyManager;
     d_ptr->m_typeToValueType[QMetaType::QPoint] = QMetaType::QPoint;
+        d_ptr->m_typeToAttributeToAttributeType[QMetaType::QPoint][d_ptr->m_minimumAttribute] =
+            QMetaType::QPoint;
+        d_ptr->m_typeToAttributeToAttributeType[QMetaType::QPoint][d_ptr->m_maximumAttribute] =
+            QMetaType::QPoint;
     connect(pointPropertyManager, &QtPointPropertyManager::valueChanged,
             this, [this](QtProperty *property, QPoint value)
             { d_ptr->slotValueChanged(property, value); });
+        connect(pointPropertyManager, &QtPointPropertyManager::rangeChanged,
+            this, [this](QtProperty *property, const QPoint &min, const QPoint &max)
+            { d_ptr->slotRangeChanged(property, min, max); });
     connect(pointPropertyManager->subIntPropertyManager(), &QtIntPropertyManager::valueChanged,
             this, [this](QtProperty *property, int value)
             { d_ptr->slotValueChanged(property, value); });
@@ -1137,9 +1162,16 @@ QtVariantPropertyManager::QtVariantPropertyManager(QObject *parent)
     d_ptr->m_typeToValueType[QMetaType::QPointF] = QMetaType::QPointF;
     d_ptr->m_typeToAttributeToAttributeType[QMetaType::QPointF][d_ptr->m_decimalsAttribute] =
             QMetaType::Int;
+    d_ptr->m_typeToAttributeToAttributeType[QMetaType::QPointF][d_ptr->m_minimumAttribute] =
+            QMetaType::QPointF;
+    d_ptr->m_typeToAttributeToAttributeType[QMetaType::QPointF][d_ptr->m_maximumAttribute] =
+            QMetaType::QPointF;
     connect(pointFPropertyManager, &QtPointFPropertyManager::valueChanged,
             this, [this](QtProperty *property, QPointF value)
             { d_ptr->slotValueChanged(property, value); });
+    connect(pointFPropertyManager, &QtPointFPropertyManager::rangeChanged,
+            this, [this](QtProperty *property, const QPointF &min, const QPointF &max)
+            { d_ptr->slotRangeChanged(property, min, max); });
     connect(pointFPropertyManager, &QtPointFPropertyManager::decimalsChanged,
             this, [this](QtProperty *property, int value)
             { d_ptr->slotDecimalsChanged(property, value); });
@@ -1656,7 +1688,17 @@ QVariant QtVariantPropertyManager::attributeValue(const QtProperty *property, co
         if (attribute == d_ptr->m_minimumAttribute)
             return dateManager->minimum(internProp);
         return {};
+    } else if (auto *pointManager = qobject_cast<QtPointPropertyManager *>(manager)) {
+        if (attribute == d_ptr->m_maximumAttribute)
+            return pointManager->maximum(internProp);
+        if (attribute == d_ptr->m_minimumAttribute)
+            return pointManager->minimum(internProp);
+        return {};
     } else if (auto *pointFManager = qobject_cast<QtPointFPropertyManager *>(manager)) {
+        if (attribute == d_ptr->m_maximumAttribute)
+            return pointFManager->maximum(internProp);
+        if (attribute == d_ptr->m_minimumAttribute)
+            return pointFManager->minimum(internProp);
         if (attribute == d_ptr->m_decimalsAttribute)
             return pointFManager->decimals(internProp);
         return {};
@@ -1926,7 +1968,17 @@ void QtVariantPropertyManager::setAttribute(QtProperty *property,
         if (attribute == d_ptr->m_minimumAttribute)
             dateManager->setMinimum(internProp, qvariant_cast<QDate>(value));
         return;
+    } else if (auto *pointManager = qobject_cast<QtPointPropertyManager *>(manager)) {
+        if (attribute == d_ptr->m_maximumAttribute)
+            pointManager->setMaximum(internProp, qvariant_cast<QPoint>(value));
+        if (attribute == d_ptr->m_minimumAttribute)
+            pointManager->setMinimum(internProp, qvariant_cast<QPoint>(value));
+        return;
     } else if (auto *pointFManager = qobject_cast<QtPointFPropertyManager *>(manager)) {
+        if (attribute == d_ptr->m_maximumAttribute)
+            pointFManager->setMaximum(internProp, qvariant_cast<QPointF>(value));
+        if (attribute == d_ptr->m_minimumAttribute)
+            pointFManager->setMinimum(internProp, qvariant_cast<QPointF>(value));
         if (attribute == d_ptr->m_decimalsAttribute)
             pointFManager->setDecimals(internProp, qvariant_cast<int>(value));
         return;

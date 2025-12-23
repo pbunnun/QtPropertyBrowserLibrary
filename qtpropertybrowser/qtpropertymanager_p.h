@@ -413,11 +413,17 @@ public:
     QtIntPropertyManager *subIntPropertyManager() const;
 
     QPoint value(const QtProperty *property) const;
+    QPoint minimum(const QtProperty *property) const;
+    QPoint maximum(const QtProperty *property) const;
 
 public Q_SLOTS:
     void setValue(QtProperty *property, QPoint val);
+    void setMinimum(QtProperty *property, QPoint minVal);
+    void setMaximum(QtProperty *property, QPoint maxVal);
+    void setRange(QtProperty *property, QPoint minVal, QPoint maxVal);
 Q_SIGNALS:
     void valueChanged(QtProperty *property, const QPoint &val);
+    void rangeChanged(QtProperty *property, const QPoint &minVal, const QPoint &maxVal);
 protected:
     QString valueText(const QtProperty *property) const override;
     void initializeProperty(QtProperty *property) override;
@@ -443,13 +449,19 @@ public:
 
     QPointF value(const QtProperty *property) const;
     int decimals(const QtProperty *property) const;
+    QPointF minimum(const QtProperty *property) const;
+    QPointF maximum(const QtProperty *property) const;
 
 public Q_SLOTS:
     void setValue(QtProperty *property, QPointF val);
     void setDecimals(QtProperty *property, int prec);
+    void setMinimum(QtProperty *property, const QPointF &minVal);
+    void setMaximum(QtProperty *property, const QPointF &maxVal);
+    void setRange(QtProperty *property, const QPointF &minVal, const QPointF &maxVal);
 Q_SIGNALS:
     void valueChanged(QtProperty *property, const QPointF &val);
     void decimalsChanged(QtProperty *property, int prec);
+    void rangeChanged(QtProperty *property, const QPointF &minVal, const QPointF &maxVal);
 protected:
     QString valueText(const QtProperty *property) const override;
     void initializeProperty(QtProperty *property) override;

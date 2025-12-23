@@ -102,6 +102,66 @@ static void setSizeMaximumData(PrivateData *data, const Value &newMaxVal)
         data->val.setHeight(data->maxVal.height());
 }
 
+template <class PrivateData>
+static void setPointFMinimumData(PrivateData *data, const QPointF &newMinVal)
+{
+    data->minVal = newMinVal;
+    if (data->maxVal.x() < data->minVal.x())
+        data->maxVal.setX(data->minVal.x());
+    if (data->maxVal.y() < data->minVal.y())
+        data->maxVal.setY(data->minVal.y());
+    
+    if (data->val.x() < data->minVal.x())
+        data->val.setX(data->minVal.x());
+    if (data->val.y() < data->minVal.y())
+        data->val.setY(data->minVal.y());
+}
+
+template <class PrivateData>
+static void setPointFMaximumData(PrivateData *data, const QPointF &newMaxVal)
+{
+    data->maxVal = newMaxVal;
+    if (data->minVal.x() > data->maxVal.x())
+        data->minVal.setX(data->maxVal.x());
+    if (data->minVal.y() > data->maxVal.y())
+        data->minVal.setY(data->maxVal.y());
+
+    if (data->val.x() > data->maxVal.x())
+        data->val.setX(data->maxVal.x());
+    if (data->val.y() > data->maxVal.y())
+        data->val.setY(data->maxVal.y());
+}
+
+template <class PrivateData>
+static void setPointMinimumData(PrivateData *data, const QPoint &newMinVal)
+{
+    data->minVal = newMinVal;
+    if (data->maxVal.x() < data->minVal.x())
+        data->maxVal.setX(data->minVal.x());
+    if (data->maxVal.y() < data->minVal.y())
+        data->maxVal.setY(data->minVal.y());
+
+    if (data->val.x() < data->minVal.x())
+        data->val.setX(data->minVal.x());
+    if (data->val.y() < data->minVal.y())
+        data->val.setY(data->minVal.y());
+}
+
+template <class PrivateData>
+static void setPointMaximumData(PrivateData *data, const QPoint &newMaxVal)
+{
+    data->maxVal = newMaxVal;
+    if (data->minVal.x() > data->maxVal.x())
+        data->minVal.setX(data->maxVal.x());
+    if (data->minVal.y() > data->maxVal.y())
+        data->minVal.setY(data->maxVal.y());
+
+    if (data->val.x() > data->maxVal.x())
+        data->val.setX(data->maxVal.x());
+    if (data->val.y() > data->maxVal.y())
+        data->val.setY(data->maxVal.y());
+}
+
 template <class SizeValue>
 static SizeValue qBoundSize(const SizeValue &minVal, const SizeValue &val, const SizeValue &maxVal)
 {
@@ -128,6 +188,22 @@ QSize qBound(QSize minVal, QSize val, QSize maxVal)
 QSizeF qBound(QSizeF minVal, QSizeF val, QSizeF maxVal)
 {
     return qBoundSize(minVal, val, maxVal);
+}
+
+QPoint qBound(QPoint minVal, QPoint val, QPoint maxVal)
+{
+    QPoint croppedVal = val;
+    if (minVal.x() > val.x())
+        croppedVal.setX(minVal.x());
+    else if (maxVal.x() < val.x())
+        croppedVal.setX(maxVal.x());
+
+    if (minVal.y() > val.y())
+        croppedVal.setY(minVal.y());
+    else if (maxVal.y() < val.y())
+        croppedVal.setY(maxVal.y());
+
+    return croppedVal;
 }
 
 namespace {
@@ -165,6 +241,14 @@ void orderBorders(QSize &minVal, QSize &maxVal)
 void orderBorders(QSizeF &minVal, QSizeF &maxVal)
 {
     orderSizeBorders(minVal, maxVal);
+}
+
+void orderBorders(QPoint &minVal, QPoint &maxVal)
+{
+    if (minVal.x() > maxVal.x())
+        qSwap(minVal.rx(), maxVal.rx());
+    if (minVal.y() > maxVal.y())
+        qSwap(minVal.ry(), maxVal.ry());
 }
 
 }
@@ -2850,8 +2934,20 @@ public:
 
     void slotIntChanged(QtProperty *property, int value);
     void slotPropertyDestroyed(QtProperty *property);
+    void setValue(QtProperty *property, const QPoint &val);
+    void setRange(QtProperty *property, const QPoint &minVal, const QPoint &maxVal, const QPoint &val);
+    struct Data
+    {
+        QPoint val{0, 0};
+        QPoint minVal{-INT_MAX, -INT_MAX};
+        QPoint maxVal{INT_MAX, INT_MAX};
+        QPoint minimumValue() const { return minVal; }
+        QPoint maximumValue() const { return maxVal; }
+        void setMinimumValue(QPoint newMinVal) { setPointMinimumData(this, newMinVal); }
+        void setMaximumValue(QPoint newMaxVal) { setPointMaximumData(this, newMaxVal); }
+    };
 
-    QHash<const QtProperty *, QPoint> m_values;
+    QHash<const QtProperty *, Data> m_values;
 
     QtIntPropertyManager *m_intPropertyManager;
 
@@ -2865,11 +2961,11 @@ public:
 void QtPointPropertyManagerPrivate::slotIntChanged(QtProperty *property, int value)
 {
     if (QtProperty *xprop = m_xToProperty.value(property, nullptr)) {
-        QPoint p = m_values[xprop];
+        QPoint p = m_values[xprop].val;
         p.setX(value);
         q_ptr->setValue(xprop, p);
     } else if (QtProperty *yprop = m_yToProperty.value(property, nullptr)) {
-        QPoint p = m_values[yprop];
+        QPoint p = m_values[yprop].val;
         p.setY(value);
         q_ptr->setValue(yprop, p);
     }
@@ -2884,6 +2980,26 @@ void QtPointPropertyManagerPrivate::slotPropertyDestroyed(QtProperty *property)
         m_propertyToY[pointProp] = nullptr;
         m_yToProperty.remove(property);
     }
+}
+
+void QtPointPropertyManagerPrivate::setValue(QtProperty *property, const QPoint &val)
+{
+    QtProperty *xProperty = m_propertyToX.value(property);
+    QtProperty *yProperty = m_propertyToY.value(property);
+    m_intPropertyManager->setValue(xProperty, val.x());
+    m_intPropertyManager->setValue(yProperty, val.y());
+}
+
+void QtPointPropertyManagerPrivate::setRange(QtProperty *property,
+                                            const QPoint &minVal, const QPoint &maxVal,
+                                            const QPoint &val)
+{
+    QtProperty *xProperty = m_propertyToX.value(property);
+    QtProperty *yProperty = m_propertyToY.value(property);
+    m_intPropertyManager->setRange(xProperty, minVal.x(), maxVal.x());
+    m_intPropertyManager->setValue(xProperty, val.x());
+    m_intPropertyManager->setRange(yProperty, minVal.y(), maxVal.y());
+    m_intPropertyManager->setValue(yProperty, val.y());
 }
 
 /*! \class QtPointPropertyManager
@@ -2967,7 +3083,17 @@ QtIntPropertyManager *QtPointPropertyManager::subIntPropertyManager() const
 */
 QPoint QtPointPropertyManager::value(const QtProperty *property) const
 {
-    return d_ptr->m_values.value(property, QPoint());
+    return d_ptr->m_values.value(property).val;
+}
+
+QPoint QtPointPropertyManager::minimum(const QtProperty *property) const
+{
+    return d_ptr->m_values.value(property).minVal;
+}
+
+QPoint QtPointPropertyManager::maximum(const QtProperty *property) const
+{
+    return d_ptr->m_values.value(property).maxVal;
 }
 
 /*!
@@ -2978,7 +3104,7 @@ QString QtPointPropertyManager::valueText(const QtProperty *property) const
     const auto it = d_ptr->m_values.constFind(property);
     if (it == d_ptr->m_values.constEnd())
         return {};
-    const QPoint v = it.value();
+    const QPoint v = it.value().val;
     return tr("(%1, %2)").arg(v.x()).arg(v.y());
 }
 
@@ -2996,15 +3122,85 @@ void QtPointPropertyManager::setValue(QtProperty *property, QPoint val)
     if (it == d_ptr->m_values.end())
         return;
 
-    if (it.value() == val)
+    QPoint newVal = qBound(it.value().minVal, val, it.value().maxVal);
+    if (it.value().val == newVal)
         return;
 
-    it.value() = val;
-    d_ptr->m_intPropertyManager->setValue(d_ptr->m_propertyToX[property], val.x());
-    d_ptr->m_intPropertyManager->setValue(d_ptr->m_propertyToY[property], val.y());
+    it.value().val = newVal;
+    d_ptr->setValue(property, newVal);
 
-    emit propertyChanged(property);
-    emit valueChanged(property, val);
+    Q_EMIT propertyChanged(property);
+    Q_EMIT valueChanged(property, newVal);
+}
+
+void QtPointPropertyManager::setMinimum(QtProperty *property, QPoint minVal)
+{
+    const auto it = d_ptr->m_values.find(property);
+    if (it == d_ptr->m_values.end())
+        return;
+
+    QtPointPropertyManagerPrivate::Data data = it.value();
+    orderBorders(minVal, data.maxVal);
+    if (data.minVal == minVal)
+        return;
+
+    data.setMinimumValue(minVal);
+    QPoint newVal = qBound(data.minVal, data.val, data.maxVal);
+
+    it.value() = data;
+    d_ptr->setRange(property, data.minVal, data.maxVal, newVal);
+    if (newVal != data.val)
+        Q_EMIT valueChanged(property, newVal);
+    Q_EMIT rangeChanged(property, data.minVal, data.maxVal);
+    if (newVal != data.val)
+        Q_EMIT propertyChanged(property);
+}
+
+void QtPointPropertyManager::setMaximum(QtProperty *property, QPoint maxVal)
+{
+    const auto it = d_ptr->m_values.find(property);
+    if (it == d_ptr->m_values.end())
+        return;
+
+    QtPointPropertyManagerPrivate::Data data = it.value();
+    orderBorders(data.minVal, maxVal);
+    if (data.maxVal == maxVal)
+        return;
+
+    data.setMaximumValue(maxVal);
+    QPoint newVal = qBound(data.minVal, data.val, data.maxVal);
+
+    it.value() = data;
+    d_ptr->setRange(property, data.minVal, data.maxVal, newVal);
+    if (newVal != data.val)
+        Q_EMIT valueChanged(property, newVal);
+    Q_EMIT rangeChanged(property, data.minVal, data.maxVal);
+    if (newVal != data.val)
+        Q_EMIT propertyChanged(property);
+}
+
+void QtPointPropertyManager::setRange(QtProperty *property, QPoint minVal, QPoint maxVal)
+{
+    const auto it = d_ptr->m_values.find(property);
+    if (it == d_ptr->m_values.end())
+        return;
+
+    orderBorders(minVal, maxVal);
+    QtPointPropertyManagerPrivate::Data data = it.value();
+    if (data.minVal == minVal && data.maxVal == maxVal)
+        return;
+
+    data.setMinimumValue(minVal);
+    data.setMaximumValue(maxVal);
+    QPoint newVal = qBound(data.minVal, data.val, data.maxVal);
+
+    it.value() = data;
+    d_ptr->setRange(property, data.minVal, data.maxVal, newVal);
+    if (newVal != data.val)
+        Q_EMIT valueChanged(property, newVal);
+    Q_EMIT rangeChanged(property, data.minVal, data.maxVal);
+    if (newVal != data.val)
+        Q_EMIT propertyChanged(property);
 }
 
 /*!
@@ -3012,18 +3208,21 @@ void QtPointPropertyManager::setValue(QtProperty *property, QPoint val)
 */
 void QtPointPropertyManager::initializeProperty(QtProperty *property)
 {
-    d_ptr->m_values[property] = QPoint(0, 0);
+    QtPointPropertyManagerPrivate::Data data;
+    d_ptr->m_values[property] = data;
 
     QtProperty *xProp = d_ptr->m_intPropertyManager->addProperty();
     xProp->setPropertyName(tr("X"));
-    d_ptr->m_intPropertyManager->setValue(xProp, 0);
+    d_ptr->m_intPropertyManager->setRange(xProp, data.minVal.x(), data.maxVal.x());
+    d_ptr->m_intPropertyManager->setValue(xProp, data.val.x());
     d_ptr->m_propertyToX[property] = xProp;
     d_ptr->m_xToProperty[xProp] = property;
     property->addSubProperty(xProp);
 
     QtProperty *yProp = d_ptr->m_intPropertyManager->addProperty();
     yProp->setPropertyName(tr("Y"));
-    d_ptr->m_intPropertyManager->setValue(yProp, 0);
+    d_ptr->m_intPropertyManager->setRange(yProp, data.minVal.y(), data.maxVal.y());
+    d_ptr->m_intPropertyManager->setValue(yProp, data.val.y());
     d_ptr->m_propertyToY[property] = yProp;
     d_ptr->m_yToProperty[yProp] = property;
     property->addSubProperty(yProp);
@@ -3059,14 +3258,24 @@ class QtPointFPropertyManagerPrivate
     Q_DECLARE_PUBLIC(QtPointFPropertyManager)
 public:
 
-    struct Data
-    {
-        QPointF val;
-        int decimals{4};
-    };
-
     void slotDoubleChanged(QtProperty *property, double value);
     void slotPropertyDestroyed(QtProperty *property);
+    // Declare helpers implemented out-of-line below
+    void setValue(QtProperty *property, const QPointF &val);
+    void setRange(QtProperty *property,
+                  const QPointF &minVal, const QPointF &maxVal,
+                  const QPointF &val);
+    struct Data
+    {
+        QPointF val{0,0};
+        int decimals{4};
+        QPointF minVal{std::numeric_limits<double>::lowest(), std::numeric_limits<double>::lowest()};
+        QPointF maxVal{std::numeric_limits<double>::max(), std::numeric_limits<double>::max()};
+        QPointF minimumValue() const { return minVal; }
+        QPointF maximumValue() const { return maxVal; }
+        void setMinimumValue(QPointF newMinVal) { setPointFMinimumData(this, newMinVal); }
+        void setMaximumValue(QPointF newMaxVal) { setPointFMaximumData(this, newMaxVal); }
+    };
 
     QHash<const QtProperty *, Data> m_values;
 
@@ -3101,6 +3310,26 @@ void QtPointFPropertyManagerPrivate::slotPropertyDestroyed(QtProperty *property)
         m_propertyToY[pointProp] = nullptr;
         m_yToProperty.remove(property);
     }
+}
+
+void QtPointFPropertyManagerPrivate::setValue(QtProperty *property, const QPointF &val)
+{
+    QtProperty *xProperty = m_propertyToX.value(property);
+    QtProperty *yProperty = m_propertyToY.value(property);
+    m_doublePropertyManager->setValue(xProperty, val.x());
+    m_doublePropertyManager->setValue(yProperty, val.y());
+}
+
+void QtPointFPropertyManagerPrivate::setRange(QtProperty *property,
+                                            const QPointF &minVal, const QPointF &maxVal,
+                                            const QPointF &val)
+{
+    QtProperty *xProperty = m_propertyToX.value(property);
+    QtProperty *yProperty = m_propertyToY.value(property);
+    m_doublePropertyManager->setRange(xProperty, minVal.x(), maxVal.x());
+    m_doublePropertyManager->setValue(xProperty, val.x());
+    m_doublePropertyManager->setRange(yProperty, minVal.y(), maxVal.y());
+    m_doublePropertyManager->setValue(yProperty, val.y());
 }
 
 /*! \class QtPointFPropertyManager
@@ -3235,6 +3464,10 @@ void QtPointFPropertyManager::setValue(QtProperty *property, QPointF val)
     if (it == d_ptr->m_values.end())
         return;
 
+    // Clamp value to min/max bounds
+    val.setX(qBound(it.value().minVal.x(), val.x(), it.value().maxVal.x()));
+    val.setY(qBound(it.value().minVal.y(), val.y(), it.value().maxVal.y()));
+
     if (it.value().val == val)
         return;
 
@@ -3278,6 +3511,108 @@ void QtPointFPropertyManager::setDecimals(QtProperty *property, int prec)
     it.value() = data;
 
     emit decimalsChanged(property, data.decimals);
+}
+
+/*!
+    Returns the given \a property's minimum value.
+
+    \sa setMinimum(), setRange(), maximum()
+*/
+QPointF QtPointFPropertyManager::minimum(const QtProperty *property) const
+{
+    return getData<QPointF>(d_ptr->m_values, &QtPointFPropertyManagerPrivate::Data::minVal, property, QPointF());
+}
+
+/*!
+    Returns the given \a property's maximum value.
+
+    \sa setMaximum(), setRange(), minimum()
+*/
+QPointF QtPointFPropertyManager::maximum(const QtProperty *property) const
+{
+    return getData<QPointF>(d_ptr->m_values, &QtPointFPropertyManagerPrivate::Data::maxVal, property, QPointF());
+}
+
+static void orderBorders(QPointF &minVal, QPointF &maxVal)
+{
+    if (minVal.x() > maxVal.x()) {
+        double tmp = minVal.x();
+        minVal.setX(maxVal.x());
+        maxVal.setX(tmp);
+    }
+    if (minVal.y() > maxVal.y()) {
+        double tmp = minVal.y();
+        minVal.setY(maxVal.y());
+        maxVal.setY(tmp);
+    }
+}
+
+/*!
+    \fn void QtPointFPropertyManager::setMinimum(QtProperty *property, const QPointF &minVal)
+
+    Sets the minimum value for the given \a property to \a minVal.
+
+    \sa minimum(), setRange(), rangeChanged()
+*/
+void QtPointFPropertyManager::setMinimum(QtProperty *property, const QPointF &minVal)
+{
+    setRange(property, minVal, maximum(property));
+}
+
+/*!
+    \fn void QtPointFPropertyManager::setMaximum(QtProperty *property, const QPointF &maxVal)
+
+    Sets the maximum value for the given \a property to \a maxVal.
+
+    \sa maximum(), setRange(), rangeChanged()
+*/
+void QtPointFPropertyManager::setMaximum(QtProperty *property, const QPointF &maxVal)
+{
+    setRange(property, minimum(property), maxVal);
+}
+
+/*!
+    \fn void QtPointFPropertyManager::setRange(QtProperty *property, const QPointF &minVal, const QPointF &maxVal)
+
+    Sets the range of valid values.
+
+    This is a convenience function defining the range of valid values
+    in one go; setting the \a minimum and \a maximum values for the
+    given \a property with a single function call.
+
+    \sa setMinimum(), setMaximum(), rangeChanged()
+*/
+void QtPointFPropertyManager::setRange(QtProperty *property, const QPointF &minVal, const QPointF &maxVal)
+{
+    const auto it = d_ptr->m_values.find(property);
+    if (it == d_ptr->m_values.end())
+        return;
+
+    QPointF fromVal = it.value().minVal;
+    QPointF toVal = it.value().maxVal;
+    orderBorders(fromVal, toVal);
+
+    QPointF newMinVal = minVal;
+    QPointF newMaxVal = maxVal;
+    orderBorders(newMinVal, newMaxVal);
+
+    if (fromVal == newMinVal && toVal == newMaxVal)
+        return;
+
+    it.value().minVal = newMinVal;
+    it.value().maxVal = newMaxVal;
+
+    emit rangeChanged(property, newMinVal, newMaxVal);
+
+    // Clamp current value if needed
+    QPointF currentVal = it.value().val;
+    QPointF clampedVal(
+        qBound(newMinVal.x(), currentVal.x(), newMaxVal.x()),
+        qBound(newMinVal.y(), currentVal.y(), newMaxVal.y())
+    );
+    
+    if (clampedVal != currentVal)
+        setValue(property, clampedVal);
 }
 
 /*!
